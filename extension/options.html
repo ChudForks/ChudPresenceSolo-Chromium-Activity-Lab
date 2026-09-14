@@ -31,10 +31,6 @@
               <strong>Enabled</strong>
             </label>
           </div>
-          <label class="row">
-            <span><strong>Show paused media</strong><small>Keep the last paused item available as activity.</small></span>
-            <input name="showPaused" type="checkbox" />
-          </label>
           <div class="general-actions">
             <p id="save-status" role="status" aria-live="polite">Changes save automatically.</p>
             <button id="reset" type="button">Restore activity defaults</button>
@@ -46,19 +42,16 @@
             <div>
               <p class="section-kicker">Discord</p>
               <h2>ChudPresenceSolo account connection</h2>
-              <p>One OAuth application signs ChudPresenceSolo into Discord for every service.</p>
+              <p>ChudPresenceSolo uses its built-in Discord applications for every service.</p>
             </div>
           </div>
           <div class="discord-setup">
-            <label for="discord-client-id"><strong>ChudPresenceSolo OAuth application ID</strong><small>Create one Public Client application in the Discord Developer Portal. This ID is used only for account authorization and as a fallback when a service ID is blank.</small></label>
-            <input id="discord-client-id" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
-            <label for="discord-redirect"><strong>OAuth redirect URL</strong><small>Add this exact URL to the ChudPresenceSolo application's OAuth2 redirects.</small></label>
+            <label for="discord-redirect"><strong>OAuth redirect URL</strong><small>This built-in URI must be registered in the ChudPresenceSolo OAuth application's redirects.</small></label>
             <div class="copy-row">
               <input id="discord-redirect" type="text" readonly />
               <button id="copy-redirect" type="button">Copy</button>
             </div>
             <div class="connection-row">
-              <button id="save-discord" type="button">Save connection setup</button>
               <button id="connect-discord" type="button">Connect Discord</button>
               <span id="discord-status" role="status" aria-live="polite"></span>
             </div>
@@ -75,18 +68,15 @@
             <label class="switch">
               <input name="sourceYouTube" type="checkbox" />
               <span aria-hidden="true"></span>
-              <strong>Enabled</strong>
-            </label>
-          </div>
-          <div class="service-setup">
-            <label><strong>Discord application ID</strong><small>Identifies the YouTube activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
-              <input class="service-application-id" name="youtubeApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+              <strong>Share activity</strong>
             </label>
           </div>
           <div class="detail-heading"><strong>Presence details</strong><small>Choose what YouTube sends to Discord.</small></div>
+          <label class="row"><span><strong>Keep visible while paused</strong><small>Show the video with a Paused marker when playback stops.</small></span><input name="youtubeShowPaused" type="checkbox" /></label>
+          <label class="row"><span><strong>Status text</strong><small>Choose the text used in Discord's member list.</small></span><select name="youtubeStatusDisplay"><option value="app">YouTube</option><option value="creator">Creator/channel</option><option value="video">Video title</option></select></label>
           <label class="row"><span><strong>Artwork</strong><small>Include the video thumbnail.</small></span><input name="youtubeShowArtwork" type="checkbox" /></label>
           <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="youtubeShowTimestamps" type="checkbox" /></label>
-          <label class="row"><span><strong>Watch links</strong><small>Include up to two HTTPS activity links.</small></span><input name="youtubeShowButtons" type="checkbox" /></label>
+          <label class="row"><span><strong>Discord profile buttons</strong><small>Show the watch and channel buttons on the activity.</small></span><input name="youtubeShowButtons" type="checkbox" /></label>
         </section>
 
         <section class="card service-card">
@@ -99,18 +89,15 @@
             <label class="switch">
               <input name="sourceYouTubeMusic" type="checkbox" />
               <span aria-hidden="true"></span>
-              <strong>Enabled</strong>
-            </label>
-          </div>
-          <div class="service-setup">
-            <label><strong>Discord application ID</strong><small>Identifies the YouTube Music activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
-              <input class="service-application-id" name="youtubeMusicApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+              <strong>Share activity</strong>
             </label>
           </div>
           <div class="detail-heading"><strong>Presence details</strong><small>Choose what YouTube Music sends to Discord.</small></div>
+          <label class="row"><span><strong>Keep visible while paused</strong><small>Show the song with a Paused marker when playback stops.</small></span><input name="youtubeMusicShowPaused" type="checkbox" /></label>
+          <label class="row"><span><strong>Status text</strong><small>Choose the text used in Discord's member list.</small></span><select name="youtubeMusicStatusDisplay"><option value="app">YouTube Music</option><option value="artist">Artist</option><option value="track">Track title</option></select></label>
           <label class="row"><span><strong>Artwork</strong><small>Include the album or track artwork.</small></span><input name="youtubeMusicShowArtwork" type="checkbox" /></label>
           <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="youtubeMusicShowTimestamps" type="checkbox" /></label>
-          <label class="row"><span><strong>Listen links</strong><small>Include up to two HTTPS activity links.</small></span><input name="youtubeMusicShowButtons" type="checkbox" /></label>
+          <label class="row"><span><strong>Discord profile buttons</strong><small>Show the play and artist-search buttons on the activity.</small></span><input name="youtubeMusicShowButtons" type="checkbox" /></label>
         </section>
 
         <section class="card service-card">
@@ -123,18 +110,15 @@
             <label class="switch">
               <input name="sourceCrunchyroll" type="checkbox" />
               <span aria-hidden="true"></span>
-              <strong>Enabled</strong>
-            </label>
-          </div>
-          <div class="service-setup">
-            <label><strong>Discord application ID</strong><small>Identifies the Crunchyroll activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
-              <input class="service-application-id" name="crunchyrollApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+              <strong>Share activity</strong>
             </label>
           </div>
           <div class="detail-heading"><strong>Presence details</strong><small>Choose what Crunchyroll sends to Discord.</small></div>
+          <label class="row"><span><strong>Keep visible while paused</strong><small>Show the episode or movie with a Paused marker.</small></span><input name="crunchyrollShowPaused" type="checkbox" /></label>
+          <label class="row"><span><strong>Status text</strong><small>Choose the text used in Discord's member list.</small></span><select name="crunchyrollStatusDisplay"><option value="app">Crunchyroll</option><option value="series">Series</option><option value="episode">Episode</option></select></label>
           <label class="row"><span><strong>Artwork</strong><small>Include the episode or series cover.</small></span><input name="crunchyrollShowArtwork" type="checkbox" /></label>
           <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="crunchyrollShowTimestamps" type="checkbox" /></label>
-          <label class="row"><span><strong>Watch links</strong><small>Include up to two HTTPS activity links.</small></span><input name="crunchyrollShowButtons" type="checkbox" /></label>
+          <label class="row"><span><strong>Discord profile buttons</strong><small>Show the watch and series buttons on the activity.</small></span><input name="crunchyrollShowButtons" type="checkbox" /></label>
         </section>
 
         <section class="card service-card">
@@ -147,18 +131,15 @@
             <label class="switch">
               <input name="sourceMovies67" type="checkbox" />
               <span aria-hidden="true"></span>
-              <strong>Enabled</strong>
-            </label>
-          </div>
-          <div class="service-setup">
-            <label><strong>Discord application ID</strong><small>Identifies the 67Movies activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
-              <input class="service-application-id" name="movies67ApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+              <strong>Share activity</strong>
             </label>
           </div>
           <div class="detail-heading"><strong>Presence details</strong><small>Choose what 67Movies sends to Discord.</small></div>
+          <label class="row"><span><strong>Keep visible while paused</strong><small>Show the episode or movie with a Paused marker.</small></span><input name="movies67ShowPaused" type="checkbox" /></label>
+          <label class="row"><span><strong>Status text</strong><small>Choose the text used in Discord's member list.</small></span><select name="movies67StatusDisplay"><option value="app">67Movies</option><option value="series">Series</option><option value="episode">Episode</option></select></label>
           <label class="row"><span><strong>Artwork</strong><small>Include the movie or series cover.</small></span><input name="movies67ShowArtwork" type="checkbox" /></label>
           <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="movies67ShowTimestamps" type="checkbox" /></label>
-          <label class="row"><span><strong>Watch links</strong><small>Include up to two HTTPS activity links.</small></span><input name="movies67ShowButtons" type="checkbox" /></label>
+          <label class="row"><span><strong>Discord profile buttons</strong><small>Show the watch and 67Movies buttons on the activity.</small></span><input name="movies67ShowButtons" type="checkbox" /></label>
         </section>
 
         <aside class="notice">

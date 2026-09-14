@@ -24,8 +24,6 @@ function safeUrl(value) {
 }
 
 function sourceLabel(track) {
-  if (track?.source === 'youtube' && track.kind === 'short') return 'YouTube Shorts';
-  if (track?.source === 'youtube' && (track.live || track.kind === 'live')) return 'YouTube Live';
   return SOURCE_LABELS[track?.source] || 'ChudPresence';
 }
 
@@ -34,16 +32,131 @@ function activityType(track) {
 }
 
 function timestamps(track, nowMs) {
-  if (!track?.playing || track.live) return null;
+  if (!track?.playing) return null;
 
   const position = Math.max(0, Number(track.position) || 0);
+  const now = Math.floor(nowMs / 1000);
+  if (track.live || track.kind === 'live') {
+    return { start: now - Math.floor(position) };
+  }
+
   const duration = Math.max(0, Number(track.duration) || 0);
   if (!duration || position >= duration) return null;
-
-  const now = Math.floor(nowMs / 1000);
   return {
     start: now - Math.floor(position),
     end: now + Math.ceil(duration - position),
+  };
+}
+
+function withMarkers(value, markers, fallback) {
+  const suffix = markers.length ? ` • ${markers.join(' • ')}` : '';
+  const text = cleanText(value || fallback, MAX_TEXT_LENGTH - suffix.length);
+  return `${text}${suffix}`;
+}
+
+function withPlaybackState(value, track, fallback) {
+  return withMarkers(value, track?.playing ? [] : ['Paused'], fallback);
+}
+
+function searchUrl(query) {
+  const text = cleanText(query);
+  if (!text) return '';
+  const url = new URL('https://music.youtube.com/search');
+  url.searchParams.set('q', text);
+  return url.toString();
+}
+
+function siteUrl(value) {
+  const safe = safeUrl(value);
+  if (!safe) return '';
+  return `${new URL(safe).origin}/`;
+}
+
+function layoutFor(track) {
+  const provider = sourceLabel(track);
+  const activityUrl = safeUrl(track.url);
+  const channelUrl = safeUrl(track.channelUrl);
+
+  if (track.source === 'youtubeMusic') {
+    const artistUrl = searchUrl(track.artist);
+    return {
+      details: cleanText(track.title),
+      state: withPlaybackState(track.artist, track, provider),
+      largeText: cleanText(track.album || track.title || provider),
+      buttons: [
+        activityUrl && { label: 'Play on YouTube Music', url: activityUrl },
+        artistUrl && { label: 'Search artist', url: artistUrl },
+      ],
+      statusFields: { app: 'name', artist: 'state', track: 'details' },
+    };
+  }
+
+  if (track.source === 'youtube') {
+    const live = track.live || track.kind === 'live';
+    const creator = cleanText(track.artist || provider);
+    return {
+      details: cleanText(track.title),
+      state: withMarkers(
+        creator,
+        [live && 'Live', !track.playing && 'Paused'].filter(Boolean),
+        provider,
+      ),
+      largeText: cleanText(track.title || provider),
+      buttons: [
+        activityUrl && {
+          label: track.kind === 'short' ? 'Watch Short' : 'Watch on YouTube',
+          url: activityUrl,
+        },
+        channelUrl && channelUrl !== activityUrl && { label: 'View channel', url: channelUrl },
+      ],
+      statusFields: { app: 'name', creator: 'state', video: 'details' },
+    };
+  }
+
+  if (track.source === 'crunchyroll') {
+    const movie = track.kind === 'movie';
+    const episodeTitle = cleanText(track.title);
+    const series = cleanText(track.artist || episodeTitle || provider);
+    return {
+      details: movie ? episodeTitle : series,
+      state: withPlaybackState(movie ? provider : track.album || episodeTitle, track, provider),
+      largeText: movie ? episodeTitle : episodeTitle || track.album || provider,
+      buttons: [
+        activityUrl && {
+          label: movie ? 'Watch movie' : 'Watch on Crunchyroll',
+          url: activityUrl,
+        },
+        !movie && channelUrl && channelUrl !== activityUrl && { label: 'View series', url: channelUrl },
+      ],
+      statusFields: { app: 'name', series: 'details', episode: 'state' },
+    };
+  }
+
+  if (track.source === 'movies67') {
+    const movie = track.kind === 'movie';
+    const title = cleanText(track.title);
+    const series = cleanText(track.artist || title || provider);
+    return {
+      details: movie ? title : series,
+      state: withPlaybackState(movie ? provider : title, track, provider),
+      largeText: cleanText(movie ? title : [track.album, title].filter(Boolean).join(' • ') || provider),
+      buttons: [
+        activityUrl && {
+          label: movie ? 'Watch movie' : 'Watch on 67Movies',
+          url: activityUrl,
+        },
+        activityUrl && { label: 'Open 67Movies', url: siteUrl(activityUrl) },
+      ],
+      statusFields: { app: 'name', series: 'details', episode: 'state' },
+    };
+  }
+
+  return {
+    details: cleanText(track.title),
+    state: withPlaybackState(track.artist || track.album, track, provider),
+    largeText: provider,
+    buttons: [activityUrl && { label: 'Open', url: activityUrl }],
+    statusFields: { app: 'name' },
   };
 }
 
@@ -56,25 +169,19 @@ export function createPresenceIntent(track, nowMs = Date.now(), settings = {}) {
   if (!track?.title || track.idle || track.ad) return null;
 
   const provider = sourceLabel(track);
-  const state = cleanText([track.artist, track.album].filter(Boolean).join(' • ') || provider);
+  const layout = layoutFor(track);
   const artwork = settings.showArtwork === false ? '' : safeUrl(track.artwork);
-  const activityUrl = safeUrl(track.url);
-  const channelUrl = safeUrl(track.channelUrl);
-  const buttons = [];
-
-  if (activityUrl) buttons.push({ label: track.kind === 'song' ? 'Listen' : 'Watch', url: activityUrl });
-  if (channelUrl && channelUrl !== activityUrl) {
-    buttons.push({ label: track.kind === 'episode' ? 'View series' : 'View channel', url: channelUrl });
-  }
+  const statusDisplayType = layout.statusFields[settings.statusDisplay] || 'name';
 
   return {
     name: provider,
     type: activityType(track),
-    details: cleanText(track.title),
-    state,
+    details: layout.details,
+    state: layout.state,
+    statusDisplayType,
     timestamps: settings.showTimestamps === false ? null : timestamps(track, nowMs),
-    assets: artwork ? { largeImage: artwork, largeText: provider } : null,
-    buttons: settings.showButtons === false ? [] : buttons.slice(0, 2),
+    assets: artwork ? { largeImage: artwork, largeText: cleanText(layout.largeText) } : null,
+    buttons: settings.showButtons === false ? [] : layout.buttons.filter(Boolean).slice(0, 2),
     source: track.source || 'unknown',
   };
 }

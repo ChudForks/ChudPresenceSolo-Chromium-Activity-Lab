@@ -1,12 +1,12 @@
 import {
   authorize,
+  DiscordRateLimitError,
   discordRequest,
   getAuthState,
   getClientId,
   getRedirectUrl,
   initializeAuth,
   revokeAuthorization,
-  setClientId,
 } from './auth.js';
 import { buildHeadlessActivity } from './activity-builder.js';
 
@@ -21,6 +21,11 @@ let lastIntent = null;
 let lastApplicationId = '';
 let lastActivityIdentity = '';
 let lastSentAt = 0;
+let rateLimitUntil = 0;
+let rateLimitTimer = 0;
+let scheduledRateLimitUntil = 0;
+let pendingIntent = null;
+let pendingApplicationId = '';
 let initialized = false;
 let writeQueue = Promise.resolve();
 let currentStatus = {
@@ -44,12 +49,63 @@ function setStatus(state, message, available = false) {
 function refreshIdleStatus() {
   const authState = getAuthState();
   if (!authState.configured) {
-    return setStatus('configuration-required', 'Add the ChudPresenceSolo OAuth application ID in Settings.', false);
+    return setStatus('configuration-required', 'Discord application configuration is unavailable.', false);
   }
   if (!authState.authenticated) {
     return setStatus('disconnected', 'Discord is configured. Connect your account to publish activity.', false);
   }
   return setStatus('connected', `Connected as ${authState.user?.username || 'Discord user'}.`, true);
+}
+
+function clearPendingRetry() {
+  pendingIntent = null;
+  pendingApplicationId = '';
+  if (rateLimitTimer) clearTimeout(rateLimitTimer);
+  rateLimitTimer = 0;
+  scheduledRateLimitUntil = 0;
+}
+
+function retryDelayMessage(delayMs) {
+  return `${Math.max(1, Math.ceil(delayMs / 1_000))} seconds`;
+}
+
+function scheduleRateLimitRetry() {
+  if (!pendingIntent) return;
+  if (rateLimitTimer && scheduledRateLimitUntil >= rateLimitUntil) return;
+  if (rateLimitTimer) clearTimeout(rateLimitTimer);
+
+  scheduledRateLimitUntil = rateLimitUntil;
+  rateLimitTimer = setTimeout(() => {
+    rateLimitTimer = 0;
+    scheduledRateLimitUntil = 0;
+    if (!pendingIntent || !getAuthState().authenticated) return;
+
+    const intent = pendingIntent;
+    const applicationId = pendingApplicationId;
+    enqueue(() => updateSession(intent, applicationId, true))
+      .then((result) => {
+        currentStatus = result;
+      })
+      .catch((error) => {
+        currentStatus = handleDeliveryError(error, intent, applicationId);
+      });
+  }, Math.max(0, rateLimitUntil - Date.now()));
+}
+
+function handleDeliveryError(error, intent, applicationId) {
+  if (!(error instanceof DiscordRateLimitError)) {
+    return setStatus('error', error.message || 'Discord presence update failed.', false);
+  }
+
+  rateLimitUntil = Math.max(rateLimitUntil, Date.now() + error.retryAfterMs);
+  pendingIntent = intent;
+  pendingApplicationId = applicationId || '';
+  scheduleRateLimitRetry();
+  return setStatus(
+    'rate-limited',
+    `Discord is rate limiting presence updates. Retrying in ${retryDelayMessage(rateLimitUntil - Date.now())}.`,
+    false,
+  );
 }
 
 function activityIdentity(activity) {
@@ -75,6 +131,9 @@ async function saveLastIntent() {
 
 async function updateSession(intent, applicationId, force = false) {
   if (!getAuthState().authenticated) return refreshIdleStatus();
+  if (rateLimitUntil > Date.now()) {
+    throw new DiscordRateLimitError(rateLimitUntil - Date.now());
+  }
   const activity = buildHeadlessActivity(intent, applicationId || getClientId());
   if (!activity) return clearSession();
 
@@ -93,7 +152,7 @@ async function updateSession(intent, applicationId, force = false) {
       body: JSON.stringify(body),
     });
   } catch (error) {
-    if (!body.token) throw error;
+    if (!body.token || error instanceof DiscordRateLimitError) throw error;
     sessionToken = '';
     await saveSession();
     result = await discordRequest('/users/@me/headless-sessions', {
@@ -107,11 +166,13 @@ async function updateSession(intent, applicationId, force = false) {
   lastApplicationId = applicationId || '';
   lastActivityIdentity = identity;
   lastSentAt = Date.now();
+  clearPendingRetry();
   await Promise.all([saveSession(), saveLastIntent()]);
   return setStatus('active', `Publishing to Discord as ${getAuthState().user?.username || 'connected user'}.`, true);
 }
 
 async function clearSession() {
+  clearPendingRetry();
   if (!sessionToken && !lastIntent && !lastActivityIdentity) return refreshIdleStatus();
   lastIntent = null;
   lastApplicationId = '';
@@ -160,13 +221,6 @@ export const discordPresence = Object.freeze({
     return currentStatus;
   },
 
-  async configure(value) {
-    await this.initialize();
-    await enqueue(clearSession);
-    await setClientId(value);
-    return refreshIdleStatus();
-  },
-
   async connect() {
     await this.initialize();
     setStatus('connecting', 'Waiting for Discord authorization…', false);
@@ -191,7 +245,9 @@ export const discordPresence = Object.freeze({
     try {
       return await enqueue(() => (intent ? updateSession(intent, applicationId) : clearSession()));
     } catch (error) {
-      return setStatus('error', error.message || 'Discord presence update failed.', false);
+      return intent
+        ? handleDeliveryError(error, intent, applicationId)
+        : setStatus('error', error.message || 'Discord presence update failed.', false);
     }
   },
 
@@ -201,7 +257,7 @@ export const discordPresence = Object.freeze({
     try {
       return await enqueue(() => updateSession(lastIntent, lastApplicationId, true));
     } catch (error) {
-      return setStatus('error', error.message || 'Discord session renewal failed.', false);
+      return handleDeliveryError(error, lastIntent, lastApplicationId);
     }
   },
 

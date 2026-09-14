@@ -4,6 +4,7 @@ import {
   applicationIdForSource,
   DEFAULT_SETTINGS,
   isTrackAllowed,
+  LEGACY_APPLICATION_ID_SETTINGS,
   LEGACY_DETAIL_SETTINGS,
   normalizeSettings,
   presenceDetailsForSource,
@@ -20,7 +21,12 @@ let pushTimer = 0;
 chrome.runtime.onInstalled.addListener(async () => {
   const stored = await chrome.storage.local.get(null);
   await chrome.storage.local.set(normalizeSettings(stored));
-  await chrome.storage.local.remove(['bridgeUrl', ...LEGACY_DETAIL_SETTINGS]);
+  await chrome.storage.local.remove([
+    'bridgeUrl',
+    'discordClientId',
+    ...LEGACY_APPLICATION_ID_SETTINGS,
+    ...LEGACY_DETAIL_SETTINGS,
+  ]);
 });
 
 async function loadSettings() {
@@ -100,7 +106,6 @@ function onTabGone(tabId) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const privilegedDiscordMessage = [
     'GET_DISCORD_SETUP',
-    'CONFIGURE_DISCORD',
     'CONNECT_DISCORD',
     'DISCONNECT_DISCORD',
   ].includes(message?.type);
@@ -149,16 +154,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === 'GET_DISCORD_SETUP') {
     presencePublisher.initialize()
       .then(() => sendResponse({ ok: true, setup: presencePublisher.setup(), delivery: presencePublisher.status() }))
-      .catch((error) => sendResponse({ ok: false, error: error.message }));
-    return true;
-  }
-
-  if (message?.type === 'CONFIGURE_DISCORD') {
-    presencePublisher.configure(message.clientId)
-      .then((result) => {
-        delivery = result;
-        sendResponse({ ok: true, setup: presencePublisher.setup(), delivery });
-      })
       .catch((error) => sendResponse({ ok: false, error: error.message }));
     return true;
   }

@@ -20,10 +20,14 @@ test('maps a playing track to a Discord-ready presence intent', () => {
     name: 'YouTube Music',
     type: 'listening',
     details: 'A Song',
-    state: 'An Artist • An Album',
+    state: 'An Artist',
+    statusDisplayType: 'name',
     timestamps: { start: 970, end: 1180 },
-    assets: { largeImage: 'https://example.com/art.jpg', largeText: 'YouTube Music' },
-    buttons: [{ label: 'Listen', url: 'https://music.youtube.com/watch?v=abcdefghijk' }],
+    assets: { largeImage: 'https://example.com/art.jpg', largeText: 'An Album' },
+    buttons: [
+      { label: 'Play on YouTube Music', url: 'https://music.youtube.com/watch?v=abcdefghijk' },
+      { label: 'Search artist', url: 'https://music.youtube.com/search?q=An+Artist' },
+    ],
     source: 'youtubeMusic',
   });
 });
@@ -42,6 +46,118 @@ test('omits timers while paused and rejects unsafe URLs', () => {
   assert.equal(intent.timestamps, null);
   assert.equal(intent.assets, null);
   assert.deepEqual(intent.buttons, []);
+  assert.equal(intent.details, 'Series title');
+  assert.equal(intent.state, 'Episode title • Paused');
+});
+
+test('uses YouTube layouts for videos, Shorts, and live streams', () => {
+  const short = createPresenceIntent({
+    source: 'youtube',
+    kind: 'short',
+    title: 'A Short',
+    artist: 'A Creator',
+    artwork: 'https://example.com/short.jpg',
+    url: 'https://www.youtube.com/shorts/abcdefghijk',
+    channelUrl: 'https://www.youtube.com/@creator',
+    playing: true,
+    position: 5,
+    duration: 20,
+  }, 1_000_000, { statusDisplay: 'creator' });
+
+  assert.equal(short.name, 'YouTube');
+  assert.equal(short.details, 'A Short');
+  assert.equal(short.state, 'A Creator');
+  assert.equal(short.statusDisplayType, 'state');
+  assert.deepEqual(short.buttons, [
+    { label: 'Watch Short', url: 'https://www.youtube.com/shorts/abcdefghijk' },
+    { label: 'View channel', url: 'https://www.youtube.com/@creator' },
+  ]);
+
+  const live = createPresenceIntent({
+    source: 'youtube',
+    kind: 'live',
+    live: true,
+    title: 'Live now',
+    artist: 'A Channel',
+    playing: true,
+    position: 90,
+  }, 1_000_000, { statusDisplay: 'video' });
+
+  assert.equal(live.state, 'A Channel • Live');
+  assert.equal(live.statusDisplayType, 'details');
+  assert.deepEqual(live.timestamps, { start: 910 });
+});
+
+test('uses dedicated Crunchyroll episode and movie layouts', () => {
+  const episode = createPresenceIntent({
+    source: 'crunchyroll',
+    kind: 'episode',
+    title: 'The Adventure Begins',
+    artist: 'Example Series',
+    album: 'Season 1, Episode 3',
+    artwork: 'https://example.com/episode.jpg',
+    url: 'https://www.crunchyroll.com/watch/ABC123',
+    channelUrl: 'https://www.crunchyroll.com/series/XYZ789',
+    playing: true,
+  }, 1_000_000, { statusDisplay: 'series' });
+
+  assert.equal(episode.details, 'Example Series');
+  assert.equal(episode.state, 'Season 1, Episode 3');
+  assert.equal(episode.assets.largeText, 'The Adventure Begins');
+  assert.equal(episode.statusDisplayType, 'details');
+  assert.deepEqual(episode.buttons, [
+    { label: 'Watch on Crunchyroll', url: 'https://www.crunchyroll.com/watch/ABC123' },
+    { label: 'View series', url: 'https://www.crunchyroll.com/series/XYZ789' },
+  ]);
+
+  const movie = createPresenceIntent({
+    source: 'crunchyroll',
+    kind: 'movie',
+    title: 'Example Movie',
+    url: 'https://www.crunchyroll.com/watch/MOVIE123',
+    playing: true,
+  });
+  assert.equal(movie.details, 'Example Movie');
+  assert.equal(movie.state, 'Crunchyroll');
+  assert.deepEqual(movie.buttons, [
+    { label: 'Watch movie', url: 'https://www.crunchyroll.com/watch/MOVIE123' },
+  ]);
+});
+
+test('uses dedicated 67Movies episode and movie layouts', () => {
+  const episode = createPresenceIntent({
+    source: 'movies67',
+    kind: 'episode',
+    title: 'Episode title',
+    artist: 'Series name',
+    album: 'Season 2, Episode 4',
+    artwork: 'https://image.tmdb.org/t/p/w500/still.jpg',
+    url: 'https://67movies.st/watch/tv/123/2/4',
+    playing: true,
+  }, 1_000_000, { statusDisplay: 'episode' });
+
+  assert.equal(episode.details, 'Series name');
+  assert.equal(episode.state, 'Episode title');
+  assert.equal(episode.assets.largeText, 'Season 2, Episode 4 • Episode title');
+  assert.equal(episode.statusDisplayType, 'state');
+  assert.deepEqual(episode.buttons, [
+    { label: 'Watch on 67Movies', url: 'https://67movies.st/watch/tv/123/2/4' },
+    { label: 'Open 67Movies', url: 'https://67movies.st/' },
+  ]);
+
+  const movie = createPresenceIntent({
+    source: 'movies67',
+    kind: 'movie',
+    title: 'Movie title',
+    url: 'https://67movies.st/watch/movie/456',
+    playing: false,
+  });
+  assert.equal(movie.details, 'Movie title');
+  assert.equal(movie.state, '67Movies • Paused');
+  assert.deepEqual(movie.buttons, [
+    { label: 'Watch movie', url: 'https://67movies.st/watch/movie/456' },
+    { label: 'Open 67Movies', url: 'https://67movies.st/' },
+  ]);
 });
 
 test('does not create presence for idle, ad, or untitled tracks', () => {

@@ -1,8 +1,12 @@
+import { SERVICE_APPLICATION_IDS } from '../config.js';
+
 export const SERVICE_SETTINGS = Object.freeze({
   youtube: Object.freeze({
     label: 'YouTube',
     enabled: 'sourceYouTube',
-    applicationId: 'youtubeApplicationId',
+    paused: 'youtubeShowPaused',
+    status: 'youtubeStatusDisplay',
+    statusValues: Object.freeze(['app', 'creator', 'video']),
     artwork: 'youtubeShowArtwork',
     timestamps: 'youtubeShowTimestamps',
     buttons: 'youtubeShowButtons',
@@ -10,7 +14,9 @@ export const SERVICE_SETTINGS = Object.freeze({
   youtubeMusic: Object.freeze({
     label: 'YouTube Music',
     enabled: 'sourceYouTubeMusic',
-    applicationId: 'youtubeMusicApplicationId',
+    paused: 'youtubeMusicShowPaused',
+    status: 'youtubeMusicStatusDisplay',
+    statusValues: Object.freeze(['app', 'artist', 'track']),
     artwork: 'youtubeMusicShowArtwork',
     timestamps: 'youtubeMusicShowTimestamps',
     buttons: 'youtubeMusicShowButtons',
@@ -18,7 +24,9 @@ export const SERVICE_SETTINGS = Object.freeze({
   crunchyroll: Object.freeze({
     label: 'Crunchyroll',
     enabled: 'sourceCrunchyroll',
-    applicationId: 'crunchyrollApplicationId',
+    paused: 'crunchyrollShowPaused',
+    status: 'crunchyrollStatusDisplay',
+    statusValues: Object.freeze(['app', 'series', 'episode']),
     artwork: 'crunchyrollShowArtwork',
     timestamps: 'crunchyrollShowTimestamps',
     buttons: 'crunchyrollShowButtons',
@@ -26,7 +34,9 @@ export const SERVICE_SETTINGS = Object.freeze({
   movies67: Object.freeze({
     label: '67Movies',
     enabled: 'sourceMovies67',
-    applicationId: 'movies67ApplicationId',
+    paused: 'movies67ShowPaused',
+    status: 'movies67StatusDisplay',
+    statusValues: Object.freeze(['app', 'series', 'episode']),
     artwork: 'movies67ShowArtwork',
     timestamps: 'movies67ShowTimestamps',
     buttons: 'movies67ShowButtons',
@@ -35,33 +45,44 @@ export const SERVICE_SETTINGS = Object.freeze({
 
 export const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
-  showPaused: true,
   sourceYouTube: true,
-  youtubeApplicationId: '',
+  youtubeShowPaused: true,
+  youtubeStatusDisplay: 'app',
   youtubeShowArtwork: true,
   youtubeShowTimestamps: true,
   youtubeShowButtons: true,
   sourceYouTubeMusic: true,
-  youtubeMusicApplicationId: '',
+  youtubeMusicShowPaused: true,
+  youtubeMusicStatusDisplay: 'app',
   youtubeMusicShowArtwork: true,
   youtubeMusicShowTimestamps: true,
   youtubeMusicShowButtons: true,
   sourceCrunchyroll: true,
-  crunchyrollApplicationId: '',
+  crunchyrollShowPaused: true,
+  crunchyrollStatusDisplay: 'app',
   crunchyrollShowArtwork: true,
   crunchyrollShowTimestamps: true,
   crunchyrollShowButtons: true,
   sourceMovies67: true,
-  movies67ApplicationId: '',
+  movies67ShowPaused: true,
+  movies67StatusDisplay: 'app',
   movies67ShowArtwork: true,
   movies67ShowTimestamps: true,
   movies67ShowButtons: true,
 });
 
 export const LEGACY_DETAIL_SETTINGS = Object.freeze([
+  'showPaused',
   'showArtwork',
   'showTimestamps',
   'showButtons',
+]);
+
+export const LEGACY_APPLICATION_ID_SETTINGS = Object.freeze([
+  'youtubeApplicationId',
+  'youtubeMusicApplicationId',
+  'crunchyrollApplicationId',
+  'movies67ApplicationId',
 ]);
 
 export function normalizeSettings(value = {}) {
@@ -75,6 +96,9 @@ export function normalizeSettings(value = {}) {
   }
 
   for (const service of Object.values(SERVICE_SETTINGS)) {
+    if (typeof value[service.paused] !== 'boolean' && typeof value.showPaused === 'boolean') {
+      normalized[service.paused] = value.showPaused;
+    }
     if (typeof value[service.artwork] !== 'boolean' && typeof value.showArtwork === 'boolean') {
       normalized[service.artwork] = value.showArtwork;
     }
@@ -83,6 +107,9 @@ export function normalizeSettings(value = {}) {
     }
     if (typeof value[service.buttons] !== 'boolean' && typeof value.showButtons === 'boolean') {
       normalized[service.buttons] = value.showButtons;
+    }
+    if (!service.statusValues.includes(value[service.status])) {
+      normalized[service.status] = DEFAULT_SETTINGS[service.status];
     }
   }
   return normalized;
@@ -93,23 +120,23 @@ export function presenceDetailsForSource(source, settings = DEFAULT_SETTINGS) {
   if (!service) return {};
   const current = normalizeSettings(settings);
   return {
+    statusDisplay: current[service.status],
     showArtwork: current[service.artwork],
     showTimestamps: current[service.timestamps],
     showButtons: current[service.buttons],
   };
 }
 
-export function applicationIdForSource(source, settings = DEFAULT_SETTINGS) {
-  const service = SERVICE_SETTINGS[source];
-  if (!service) return '';
-  return normalizeSettings(settings)[service.applicationId];
+export function applicationIdForSource(source) {
+  return SERVICE_APPLICATION_IDS[source] || '';
 }
 
 export function isTrackAllowed(track, settings = DEFAULT_SETTINGS) {
   if (!track) return false;
   const current = normalizeSettings(settings);
   if (!current.enabled) return false;
-  if (!current.showPaused && !track.playing) return false;
   const service = SERVICE_SETTINGS[track.source];
-  return !service || current[service.enabled];
+  if (!service) return true;
+  if (!current[service.enabled]) return false;
+  return track.playing || current[service.paused];
 }

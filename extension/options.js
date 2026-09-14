@@ -1,9 +1,8 @@
-import { DEFAULT_SETTINGS, normalizeSettings, SERVICE_SETTINGS } from './core/settings.js';
+import { DEFAULT_SETTINGS, normalizeSettings } from './core/settings.js';
 
 const form = document.getElementById('settings-form');
 const status = document.getElementById('save-status');
 let saveTimer = 0;
-const clientIdInput = document.getElementById('discord-client-id');
 const redirectInput = document.getElementById('discord-redirect');
 const discordStatus = document.getElementById('discord-status');
 const connectButton = document.getElementById('connect-discord');
@@ -31,21 +30,9 @@ async function load() {
   await loadDiscordSetup();
 }
 
-function invalidServiceApplicationId() {
-  for (const service of Object.values(SERVICE_SETTINGS)) {
-    const input = form.elements.namedItem(service.applicationId);
-    const value = input.value.trim();
-    const invalid = Boolean(value) && !/^\d{17,20}$/.test(value);
-    input.setAttribute('aria-invalid', String(invalid));
-    if (invalid) return { input, label: service.label };
-  }
-  return null;
-}
-
 function renderDiscord(result) {
   if (!result?.ok) throw new Error(result?.error || 'Could not load Discord setup.');
   const setup = result.setup || {};
-  clientIdInput.value = setup.clientId || '';
   redirectInput.value = setup.redirectUrl || '';
   connectButton.textContent = setup.authenticated ? 'Disconnect Discord' : 'Connect Discord';
   connectButton.dataset.action = setup.authenticated ? 'disconnect' : 'connect';
@@ -58,11 +45,6 @@ async function loadDiscordSetup() {
 
 async function save() {
   clearTimeout(saveTimer);
-  const invalid = invalidServiceApplicationId();
-  if (invalid) {
-    status.textContent = `${invalid.label} needs a valid 17–20 digit Discord application ID.`;
-    return;
-  }
   await chrome.storage.local.set(readForm());
   status.textContent = 'Saved.';
   saveTimer = setTimeout(() => {
@@ -77,34 +59,11 @@ form.addEventListener('change', (event) => {
   });
 });
 
-for (const input of document.querySelectorAll('.service-application-id')) {
-  input.addEventListener('input', () => {
-    input.value = input.value.replace(/\D/g, '').slice(0, 20);
-    input.setAttribute('aria-invalid', 'false');
-  });
-}
-
-clientIdInput.addEventListener('input', () => {
-  clientIdInput.value = clientIdInput.value.replace(/\D/g, '').slice(0, 20);
-});
-
 document.getElementById('reset').addEventListener('click', () => {
   render(DEFAULT_SETTINGS);
   save().catch(() => {
     status.textContent = 'Could not restore defaults. Try again.';
   });
-});
-
-document.getElementById('save-discord').addEventListener('click', async () => {
-  discordStatus.textContent = 'Saving…';
-  try {
-    renderDiscord(await chrome.runtime.sendMessage({
-      type: 'CONFIGURE_DISCORD',
-      clientId: clientIdInput.value,
-    }));
-  } catch (error) {
-    discordStatus.textContent = error.message || 'Could not save Discord setup.';
-  }
 });
 
 connectButton.addEventListener('click', async () => {
@@ -113,13 +72,6 @@ connectButton.addEventListener('click', async () => {
     ? 'Disconnecting…'
     : 'Waiting for Discord…';
   try {
-    if (connectButton.dataset.action === 'connect' && clientIdInput.value.trim()) {
-      const configured = await chrome.runtime.sendMessage({
-        type: 'CONFIGURE_DISCORD',
-        clientId: clientIdInput.value,
-      });
-      if (!configured?.ok) throw new Error(configured?.error);
-    }
     const type = connectButton.dataset.action === 'disconnect' ? 'DISCONNECT_DISCORD' : 'CONNECT_DISCORD';
     renderDiscord(await chrome.runtime.sendMessage({ type }));
   } catch (error) {

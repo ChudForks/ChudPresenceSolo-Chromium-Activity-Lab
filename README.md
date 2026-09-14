@@ -19,21 +19,40 @@ it in its popup, and can experimentally publish it directly to Discord.
 2. Enable **Developer mode**.
 3. Choose **Load unpacked**.
 4. Select the `extension` directory.
-5. Open the extension's **Settings** page and copy its OAuth redirect URL.
-6. Create a Discord application, enable **Public Client**, and add that exact
-   redirect URL in the application's OAuth2 settings.
-7. Paste the ChudPresenceSolo OAuth application ID into its Discord connection
-   settings, save it, and choose **Connect Discord**.
-8. Optionally add a separate Discord application ID to each service profile.
-   A blank service ID falls back to the ChudPresenceSolo OAuth application ID.
-9. Open a supported site and play something, then open the extension popup.
+5. In the Discord Developer Portal, ensure the built-in OAuth application's
+   OAuth2 redirect list contains
+   `https://lgnhpmldmgjclkkjajcaehlcggbconka.chromiumapp.org/discord` and that
+   **Public Client** is enabled.
+6. Open the extension's **Settings** page and choose **Connect Discord**.
+7. Open a supported site and play something, then open the extension popup.
 
 Use **Settings** in the popup, or **Details → Extension options** on the browser's
-extensions page, to configure paused-media handling and a separate profile for
-each supported service. Service profiles contain the activity application ID,
-artwork, timer, and activity-link preferences. The one ChudPresenceSolo OAuth
-application remains responsible for the shared Discord login. Settings are
-stored locally by the extension.
+extensions page, to configure a separate profile for each supported service.
+Service profiles contain sharing, paused-media, member-list status text, artwork,
+timer, and Discord profile-button preferences. The OAuth application ID, service
+application IDs, and OAuth redirect URI are fixed in
+`extension/config.js`; users cannot override them from Settings. Other settings
+are stored locally by the extension.
+
+The fixed redirect URI requires the extension to run with the ID
+`lgnhpmldmgjclkkjajcaehlcggbconka`; verify that ID in the browser's extension
+page before connecting Discord.
+
+## Discord layouts
+
+- **YouTube Music:** song title, artist, album artwork tooltip, playback progress,
+  **Play on YouTube Music**, and **Search artist**.
+- **YouTube:** video title, channel, thumbnail, playback progress, **Watch on
+  YouTube**, and **View channel**. Live streams use an elapsed timer and Live
+  marker; Shorts use **Watch Short**.
+- **Crunchyroll:** series plus season/episode information, with the episode title
+  on the artwork tooltip. Movies use their own title and **Watch movie** layout.
+- **67Movies:** TMDB series/movie artwork and metadata. Episodes show series plus
+  episode title; movies use their own title and **Watch movie** layout.
+
+Paused activities remain visible and receive a Paused marker by default. Every
+service can independently disable that behavior and choose whether Discord's
+member list shows the application name, primary title, or secondary status.
 
 No companion process, localhost port, installer, or Discord desktop client is
 required. Detection and preview continue to work without connecting Discord.

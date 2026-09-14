@@ -30,6 +30,8 @@ h2 { margin: 0; font-size: 16px; }
 .row span { display: grid; gap: 2px; }
 .row small { color: var(--muted); }
 input[type='checkbox'] { width: 19px; height: 19px; flex: 0 0 auto; margin: 0; accent-color: var(--accent); cursor: pointer; }
+select { min-width: 160px; padding: 9px 34px 9px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: #10151f; font: inherit; cursor: pointer; }
+select:focus { border-color: #7f779e; outline: 2px solid #d2cbff55; }
 .switch { display: flex; align-items: center; gap: 9px; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; pointer-events: none; }
 .switch span { position: relative; width: 42px; height: 24px; border-radius: 99px; background: #444d60; transition: background .18s; }
@@ -42,12 +44,7 @@ input[type='checkbox'] { width: 19px; height: 19px; flex: 0 0 auto; margin: 0; a
 .discord-setup small { color: var(--muted); }
 .discord-setup input[type='text'] { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: #10151f; font: inherit; }
 .discord-setup input[type='text']:focus { border-color: #7f779e; outline: 2px solid #d2cbff55; }
-.service-setup { padding: 0 22px 20px; }
-.service-setup label { display: grid; gap: 3px; }
-.service-setup small, .detail-heading small { color: var(--muted); }
-.service-setup input[type='text'] { width: 100%; min-width: 0; margin-top: 7px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--text); background: #10151f; font: inherit; }
-.service-setup input[type='text']:focus { border-color: #7f779e; outline: 2px solid #d2cbff55; }
-.service-setup input[aria-invalid='true'] { border-color: var(--accent); }
+.detail-heading small { color: var(--muted); }
 .detail-heading { display: grid; gap: 2px; padding: 13px 22px; border-top: 1px solid var(--line); background: #10151f80; }
 .detail-heading strong { font-size: 12px; letter-spacing: .02em; }
 .copy-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }

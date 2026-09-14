@@ -21,10 +21,6 @@ export const presencePublisher = Object.freeze({
     return discordPresence.disconnect();
   },
 
-  configure(clientId) {
-    return discordPresence.configure(clientId);
-  },
-
   setup() {
     return discordPresence.getSetup();
   },

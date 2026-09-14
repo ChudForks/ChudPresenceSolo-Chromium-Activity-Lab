@@ -1,4 +1,5 @@
 const ACTIVITY_TYPES = Object.freeze({ playing: 0, listening: 2, watching: 3 });
+const STATUS_DISPLAY_TYPES = Object.freeze({ name: 0, state: 1, details: 2 });
 
 function milliseconds(seconds) {
   return Math.round(Number(seconds) * 1000);
@@ -16,6 +17,7 @@ export function buildHeadlessActivity(intent, applicationId) {
     type: ACTIVITY_TYPES[intent.type] ?? ACTIVITY_TYPES.playing,
     details: intent.details,
     state: intent.state || intent.name || 'ChudPresence',
+    status_display_type: STATUS_DISPLAY_TYPES[intent.statusDisplayType] ?? STATUS_DISPLAY_TYPES.name,
   };
 
   if (intent.timestamps?.start || intent.timestamps?.end) {
@@ -29,6 +31,8 @@ export function buildHeadlessActivity(intent, applicationId) {
       large_image: intent.assets.largeImage,
       large_text: intent.assets.largeText || intent.name || 'ChudPresence',
     };
+    if (intent.assets.smallImage) activity.assets.small_image = intent.assets.smallImage;
+    if (intent.assets.smallText) activity.assets.small_text = intent.assets.smallText;
   }
 
   if (buttons.length) {

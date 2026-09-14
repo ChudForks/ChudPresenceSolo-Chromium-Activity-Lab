@@ -1,17 +1,30 @@
+import { DISCORD_CLIENT_ID, DISCORD_REDIRECT_URL } from '../config.js';
+
 const API_BASE = 'https://discord.com/api/v10';
 const AUTHORIZE_URL = 'https://discord.com/oauth2/authorize';
 const AUTH_STORAGE_KEY = 'discordAuth';
-const CLIENT_ID_STORAGE_KEY = 'discordClientId';
+const AUTH_CLIENT_ID_STORAGE_KEY = 'discordAuthClientId';
 const PENDING_STORAGE_KEY = 'discordPendingOAuth';
 const SCOPES = ['openid', 'sdk.social_layer_presence'];
 
 let auth = null;
-let clientId = '';
 let initialized = false;
 let refreshPromise = null;
 
-function storageGet(area, keys) {
-  return area.get(keys);
+export class DiscordRateLimitError extends Error {
+  constructor(retryAfterMs) {
+    const delay = Math.max(1_000, Math.ceil(Number(retryAfterMs) || 5_000));
+    super(`Discord is rate limiting requests. Retrying in ${Math.ceil(delay / 1_000)} seconds.`);
+    this.name = 'DiscordRateLimitError';
+    this.retryAfterMs = delay;
+  }
+}
+
+export function rateLimitErrorFromResponse(response, result = {}) {
+  const retryAfterSeconds = Number(result?.retry_after ?? response.headers.get('retry-after'));
+  return new DiscordRateLimitError(
+    Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0 ? retryAfterSeconds * 1_000 : 5_000,
+  );
 }
 
 function base64Url(bytes) {
@@ -33,12 +46,18 @@ async function sha256Base64Url(value) {
 }
 
 async function persistAuth() {
-  if (auth) await chrome.storage.local.set({ [AUTH_STORAGE_KEY]: auth });
-  else await chrome.storage.local.remove(AUTH_STORAGE_KEY);
+  if (auth) {
+    await chrome.storage.local.set({
+      [AUTH_STORAGE_KEY]: auth,
+      [AUTH_CLIENT_ID_STORAGE_KEY]: DISCORD_CLIENT_ID,
+    });
+  } else {
+    await chrome.storage.local.remove([AUTH_STORAGE_KEY, AUTH_CLIENT_ID_STORAGE_KEY]);
+  }
 }
 
 async function tokenRequest(parameters) {
-  const body = new URLSearchParams({ client_id: clientId, ...parameters });
+  const body = new URLSearchParams({ client_id: DISCORD_CLIENT_ID, ...parameters });
   const response = await fetch(`${API_BASE}/oauth2/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -46,6 +65,7 @@ async function tokenRequest(parameters) {
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 429) throw rateLimitErrorFromResponse(response, result);
     throw new Error(result.error_description || result.message || `Discord OAuth failed (${response.status}).`);
   }
 
@@ -75,40 +95,28 @@ async function refreshAccessToken() {
 
 export async function initializeAuth() {
   if (initialized) return;
-  const stored = await storageGet(chrome.storage.local, [AUTH_STORAGE_KEY, CLIENT_ID_STORAGE_KEY]);
-  auth = stored[AUTH_STORAGE_KEY] || null;
-  clientId = String(stored[CLIENT_ID_STORAGE_KEY] || '').trim();
+  const stored = await chrome.storage.local.get([AUTH_STORAGE_KEY, AUTH_CLIENT_ID_STORAGE_KEY]);
+  auth = stored[AUTH_CLIENT_ID_STORAGE_KEY] === DISCORD_CLIENT_ID
+    ? stored[AUTH_STORAGE_KEY] || null
+    : null;
+  if (!auth && stored[AUTH_STORAGE_KEY]) await persistAuth();
   initialized = true;
 }
 
 export function getRedirectUrl() {
-  return chrome.identity.getRedirectURL('discord');
+  return DISCORD_REDIRECT_URL;
 }
 
 export function getClientId() {
-  return clientId;
+  return DISCORD_CLIENT_ID;
 }
 
 export function getAuthState() {
   return {
-    configured: /^\d{17,20}$/.test(clientId),
+    configured: true,
     authenticated: Boolean(auth?.accessToken),
     user: auth?.user || null,
   };
-}
-
-export async function setClientId(value) {
-  await initializeAuth();
-  const next = String(value || '').trim();
-  if (next && !/^\d{17,20}$/.test(next)) {
-    throw new Error('Enter a valid ChudPresenceSolo OAuth application ID.');
-  }
-  const changed = next !== clientId;
-  if (changed && auth) await revokeAuthorization().catch(() => {});
-  clientId = next;
-  if (changed) auth = null;
-  await chrome.storage.local.set({ [CLIENT_ID_STORAGE_KEY]: clientId });
-  if (changed) await persistAuth();
 }
 
 export async function getAccessToken(forceRefresh = false) {
@@ -136,16 +144,13 @@ export async function discordRequest(path, options = {}, retry = true) {
   if (response.status === 204) return null;
 
   const result = await response.json().catch(() => ({}));
+  if (response.status === 429) throw rateLimitErrorFromResponse(response, result);
   if (!response.ok) throw new Error(result.message || `Discord API failed (${response.status}).`);
   return result;
 }
 
 export async function authorize() {
   await initializeAuth();
-  if (!/^\d{17,20}$/.test(clientId)) {
-    throw new Error('Configure the ChudPresenceSolo OAuth application ID first.');
-  }
-
   const verifier = randomBase64Url(64);
   const state = randomBase64Url(24);
   const challenge = await sha256Base64Url(verifier);
@@ -153,7 +158,7 @@ export async function authorize() {
   await chrome.storage.session.set({ [PENDING_STORAGE_KEY]: pending });
 
   const url = new URL(AUTHORIZE_URL);
-  url.searchParams.set('client_id', clientId);
+  url.searchParams.set('client_id', DISCORD_CLIENT_ID);
   url.searchParams.set('response_type', 'code');
   url.searchParams.set('redirect_uri', getRedirectUrl());
   url.searchParams.set('scope', SCOPES.join(' '));
@@ -192,9 +197,9 @@ export async function authorize() {
 export async function revokeAuthorization() {
   await initializeAuth();
   const token = auth?.refreshToken || auth?.accessToken;
-  if (token && clientId) {
+  if (token) {
     const body = new URLSearchParams({
-      client_id: clientId,
+      client_id: DISCORD_CLIENT_ID,
       token,
       token_type_hint: auth?.refreshToken ? 'refresh_token' : 'access_token',
     });
