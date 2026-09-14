@@ -41,11 +41,13 @@ site -> extension activity -> Discord-ready activity -> connection -> Rich Prese
 It does **not** model OAuth tokens as a presence transport. Authentication and
 delivery are separate concerns.
 
-## Why the pictured Discord path cannot run inside this extension
+## Experimental extension-only Discord path
 
-Discord OAuth can identify and authorize a user, but Discord does not expose a
-REST endpoint that lets a browser extension set that user's Rich Presence.
-Access and refresh tokens therefore do not complete the last hop.
+Discord does not document a supported public REST endpoint for browser extensions
+to set a user's Rich Presence. It does, however, currently expose an undocumented
+Headless Sessions endpoint that accepts OAuth access tokens carrying the
+`sdk.social_layer_presence` scope. ChudPresenceSolo uses that endpoint as an
+explicitly experimental transport.
 
 Discord currently supports off-platform Rich Presence through its native Social
 SDK. Its direct RPC mode requires a running Discord client and explicitly does
@@ -53,15 +55,15 @@ not support web clients. A Manifest V3 extension cannot load the native Social
 SDK or open Discord's desktop IPC socket. The Embedded App SDK is for an Activity
 running inside Discord, not an arbitrary extension page.
 
-Consequently, a real publisher requires one of these product decisions:
+For a supported production publisher, the documented product choices remain:
 
 1. Allow a small native host using Discord's Social SDK. This is the direct and
    supported Rich Presence route, but it is a companion component.
 2. Turn ChudPresence into a Discord Activity using the Embedded App SDK. This is
    browser technology, but users must run the Activity inside Discord and a
    secure relay would be needed to receive browser-extension events.
-3. Keep ChudPresenceSolo extension-only and provide local preview only. This is
-   the current, honest behavior.
+3. Keep ChudPresenceSolo extension-only and fall back to local preview whenever
+   its experimental Headless Sessions transport is unavailable.
 
 A bot or ordinary OAuth-backed web service is not a fourth option: it can update
 the bot's presence, not the authenticated user's presence.
@@ -75,8 +77,14 @@ the bot's presence, not the authenticated user's presence.
   Discord-shaped presence intent. It owns text limits, safe external URLs,
   timers, artwork, and buttons.
 - `extension/background.js` owns browser lifecycle, settings, and orchestration.
-- `extension/platform/presence-publisher.js` is the only delivery boundary. A
-  supported connector replaces this module without changing provider adapters.
+- `extension/discord/auth.js` owns OAuth PKCE, refresh, revocation, and isolated
+  token storage.
+- `extension/discord/presence.js` owns Headless Sessions, renewal, clearing, and
+  transport status.
+- `extension/discord/activity-builder.js` converts the transport-neutral intent
+  to Discord's headless activity payload.
+- `extension/platform/presence-publisher.js` remains the delivery boundary. A
+  future supported connector can replace this layer without changing adapters.
 - `extension/popup.*` renders detected activity and the real publisher status.
 - `extension/options.*` owns the settings UI, while `core/settings.js` owns
   defaults, normalization, and provider filtering.
@@ -89,8 +97,9 @@ The publisher accepts either a presence intent or `null`; `null` means clear the
 presence. It returns a delivery status with `id`, `available`, `state`, and
 `message` so UI code never has to know which transport is installed.
 
-## Next decision gate
+## Reliability boundary
 
-Do not add `identity`, broad host permissions, OAuth token storage, or a Discord
-login UI until a supported publisher has been selected. OAuth should then live
-beside that publisher rather than inside site adapters or the popup.
+The extension explicitly clears activity during normal pause, disable, and logout
+flows. If the browser is killed, Discord's approximately 20-minute Headless
+Session expiry is the cleanup fallback. A ten-minute extension alarm renews an
+active session while the browser remains available.

@@ -4,15 +4,14 @@ ChudPresenceSolo is an extension-only foundation for detecting playback on YouTu
 YouTube Music, Crunchyroll, and 67Movies.
 
 The old Node.js companion, localhost bridge, system tray app, Windows installer,
-and bundled runtime have been removed. The extension currently detects activity
-and displays it in its popup.
+and bundled runtime have been removed. The extension detects activity, displays
+it in its popup, and can experimentally publish it directly to Discord.
 
-> Discord Rich Presence publishing is not available in this baseline. Discord's
-> supported off-platform path uses its native Social SDK, which cannot run in a
-> Chromium extension. OAuth access alone does not provide a user-presence API.
-> The extension prepares a Discord-shaped activity behind the publisher boundary
-> described in [ARCHITECTURE.md](ARCHITECTURE.md), but reports the missing
-> transport honestly.
+> Discord does not document Headless Sessions as a supported public API. This
+> extension-only transport may change or stop working without notice. It uses
+> Discord OAuth with PKCE and never asks for a Discord account token. Discord's
+> required `sdk.social_layer_presence` scope authorizes more Social SDK features
+> than this extension uses; ChudPresence only calls user info and presence routes.
 
 ## Load the extension
 
@@ -20,14 +19,19 @@ and displays it in its popup.
 2. Enable **Developer mode**.
 3. Choose **Load unpacked**.
 4. Select the `extension` directory.
-5. Open a supported site and play something, then open the extension popup.
+5. Open the extension's **Settings** page and copy its OAuth redirect URL.
+6. Create a Discord application, enable **Public Client**, and add that exact
+   redirect URL in the application's OAuth2 settings.
+7. Paste the Discord application ID into ChudPresence settings, save it, and
+   choose **Connect Discord**.
+8. Open a supported site and play something, then open the extension popup.
 
 Use **Settings** in the popup, or **Details → Extension options** on the browser's
 extensions page, to configure supported sources, paused-media handling, artwork,
 timers, and activity links. Settings are stored locally by the extension.
 
-No companion process, application ID, localhost port, installer, or Discord login
-is required for detection and preview behavior.
+No companion process, localhost port, installer, or Discord desktop client is
+required. Detection and preview continue to work without connecting Discord.
 
 ## Development
 

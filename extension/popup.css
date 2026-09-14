@@ -46,6 +46,11 @@ h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.5px; }
 .artist { margin-top: 5px; color: var(--muted); font-size: 12px; }
 .hint { margin: 14px 0 19px; padding-left: 11px; border-left: 2px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.6; }
 .hint:empty { display: none; }
+.discord-actions { display: flex; margin: -5px 0 17px; }
+.discord-actions button { width: 100%; padding: 9px 12px; border: 1px solid #4d5870; border-radius: 9px; color: var(--text); background: #202737; font: inherit; font-weight: 650; cursor: pointer; }
+.discord-actions button:hover { border-color: #75819b; background: #272f42; }
+.discord-actions button:disabled { cursor: wait; opacity: .65; }
+.discord-actions button:focus-visible { outline: 2px solid #c5bdff; outline-offset: 3px; }
 footer { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11px; }
 footer button { border: 0; padding: 4px 0 4px 10px; color: #d6d0ff; font: inherit; font-weight: 650; background: transparent; cursor: pointer; }
 footer button:hover { color: white; }

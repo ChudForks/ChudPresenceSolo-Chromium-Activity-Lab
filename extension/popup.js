@@ -6,6 +6,7 @@ const artEl = document.getElementById('art');
 const artFallback = document.getElementById('art-fallback');
 const hintEl = document.getElementById('hint');
 const modeEl = document.getElementById('mode');
+const discordActionEl = document.getElementById('discord-action');
 let lastState = null;
 
 function sourceName(track) {
@@ -68,6 +69,9 @@ function render(state) {
   hintEl.textContent = settings.enabled === false
     ? 'Activity detection is paused. Flip the switch to resume it.'
     : state.delivery?.message || 'Activity is detected locally in the extension.';
+  const authenticated = state.delivery?.authenticated === true;
+  discordActionEl.textContent = authenticated ? 'Disconnect Discord' : 'Connect Discord';
+  discordActionEl.dataset.action = authenticated ? 'disconnect' : 'connect';
   modeEl.textContent = 'Extension only • No companion app';
 }
 
@@ -97,6 +101,25 @@ enabledEl.addEventListener('change', async () => {
 
 document.getElementById('open-settings').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
+});
+
+discordActionEl.addEventListener('click', async () => {
+  discordActionEl.disabled = true;
+  try {
+    if (discordActionEl.dataset.action === 'disconnect') {
+      await chrome.runtime.sendMessage({ type: 'DISCONNECT_DISCORD' });
+    } else if (lastState?.delivery?.configured) {
+      const result = await chrome.runtime.sendMessage({ type: 'CONNECT_DISCORD' });
+      if (!result?.ok) throw new Error(result?.error || 'Discord connection failed.');
+    } else {
+      chrome.runtime.openOptionsPage();
+    }
+    await refresh();
+  } catch (error) {
+    hintEl.textContent = error.message || 'Could not update the Discord connection.';
+  } finally {
+    discordActionEl.disabled = false;
+  }
 });
 
 refresh();

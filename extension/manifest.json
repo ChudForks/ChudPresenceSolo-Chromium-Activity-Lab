@@ -74,5 +74,9 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["storage"]
+  "permissions": ["alarms", "identity", "storage"],
+  "host_permissions": [
+    "https://discord.com/api/*",
+    "https://discord.com/oauth2/*"
+  ]
 }

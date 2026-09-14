@@ -41,6 +41,17 @@ async function publishCurrentActivity() {
   delivery = await presencePublisher.publish(intent);
 }
 
+async function connectDiscord() {
+  delivery = await presencePublisher.connect();
+  await publishCurrentActivity();
+  return delivery;
+}
+
+async function disconnectDiscord() {
+  delivery = await presencePublisher.disconnect();
+  return delivery;
+}
+
 function schedulePublish() {
   if (pushTimer) return;
   pushTimer = setTimeout(() => {
@@ -75,6 +86,18 @@ function onTabGone(tabId) {
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const privilegedDiscordMessage = [
+    'GET_DISCORD_SETUP',
+    'CONFIGURE_DISCORD',
+    'CONNECT_DISCORD',
+    'DISCONNECT_DISCORD',
+  ].includes(message?.type);
+  const sentByExtensionPage = String(sender.url || '').startsWith(chrome.runtime.getURL(''));
+  if (privilegedDiscordMessage && !sentByExtensionPage) {
+    sendResponse({ ok: false, error: 'Discord account controls are only available on extension pages.' });
+    return false;
+  }
+
   if (message?.type === 'TRACK_UPDATE') {
     const tabId = sender.tab?.id;
     if (typeof tabId === 'number' && !closedTabIds.has(tabId)) {
@@ -106,8 +129,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message?.type === 'GET_STATE') {
+    delivery = presencePublisher.status();
     sendResponse({ settings, delivery, track: currentTrack() });
     return false;
+  }
+
+  if (message?.type === 'GET_DISCORD_SETUP') {
+    presencePublisher.initialize()
+      .then(() => sendResponse({ ok: true, setup: presencePublisher.setup(), delivery: presencePublisher.status() }))
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === 'CONFIGURE_DISCORD') {
+    presencePublisher.configure(message.clientId)
+      .then((result) => {
+        delivery = result;
+        sendResponse({ ok: true, setup: presencePublisher.setup(), delivery });
+      })
+      .catch((error) => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
+
+  if (message?.type === 'CONNECT_DISCORD') {
+    connectDiscord()
+      .then(() => sendResponse({ ok: true, delivery, setup: presencePublisher.setup() }))
+      .catch((error) => sendResponse({ ok: false, error: error.message, delivery: presencePublisher.status() }));
+    return true;
+  }
+
+  if (message?.type === 'DISCONNECT_DISCORD') {
+    disconnectDiscord()
+      .then(() => sendResponse({ ok: true, delivery, setup: presencePublisher.setup() }))
+      .catch((error) => sendResponse({ ok: false, error: error.message, delivery: presencePublisher.status() }));
+    return true;
   }
 
   if (message?.type === 'SET_ENABLED') {
@@ -148,4 +203,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
   loadSettings().then(publishCurrentActivity);
 });
 
-loadSettings().then(publishCurrentActivity);
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== 'discord-presence-renew') return;
+  presencePublisher.renew().then((result) => {
+    delivery = result;
+  });
+});
+
+Promise.all([loadSettings(), presencePublisher.initialize()]).then(() => {
+  delivery = presencePublisher.status();
+});
