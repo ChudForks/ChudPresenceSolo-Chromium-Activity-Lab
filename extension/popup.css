@@ -63,8 +63,8 @@ svg { display: block; fill: none; stroke: currentColor; stroke-linecap: round; s
 }
 .app-bar::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 170px; pointer-events: none; background: linear-gradient(118deg, rgba(87,107,255,.34), rgba(38,183,232,.14) 75%, transparent 76%); }
 .brand-button { position: relative; display: flex; align-items: center; min-width: 0; gap: 11px; padding: 0; border: 0; background: transparent; cursor: pointer; text-align: left; }
-.logo-shell { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; padding: 2px; border: 1px solid rgba(255,255,255,.16); border-radius: 13px; background: rgba(10,12,22,.65); box-shadow: 0 9px 22px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.08); }
-.logo-shell img { width: 100%; height: 100%; border-radius: 10px; }
+.logo-shell { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; }
+.logo-shell img { width: 100%; height: 100%; }
 .brand-copy { display: grid; min-width: 0; }
 .brand-copy strong { font-size: 16px; font-weight: 690; letter-spacing: -.4px; }
 .brand-copy small { display: flex; align-items: center; gap: 6px; margin-top: 1px; color: #a8adc0; font-size: 9.5px; }
