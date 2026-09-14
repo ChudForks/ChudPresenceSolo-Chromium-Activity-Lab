@@ -23,11 +23,11 @@ it in its popup, and can experimentally publish it directly to Discord.
    OAuth2 redirect list contains
    `https://lgnhpmldmgjclkkjajcaehlcggbconka.chromiumapp.org/discord` and that
    **Public Client** is enabled.
-6. Open the extension's **Settings** page and choose **Connect Discord**.
+6. Open the extension panel, choose the gear, and select **Connect** under Discord.
 7. Open a supported site and play something, then open the extension popup.
 
-Use **Settings** in the popup, or **Details → Extension options** on the browser's
-extensions page, to configure a separate profile for each supported service.
+Use the gear inside the extension panel to configure a separate profile for each
+supported service without leaving the popup.
 Service profiles contain sharing, paused-media, member-list status text, artwork,
 timer, and Discord profile-button preferences. The OAuth application ID, service
 application IDs, and OAuth redirect URI are fixed in

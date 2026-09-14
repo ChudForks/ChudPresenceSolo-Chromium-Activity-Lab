@@ -1,23 +1,51 @@
-const enabledEl = document.getElementById('enabled');
+import { DEFAULT_SETTINGS, normalizeSettings, SERVICE_SETTINGS } from './core/settings.js';
+
+const serviceUi = Object.freeze({
+  youtube: {
+    icon: 'assets/services/youtube.svg',
+    description: 'Videos, Shorts, and live streams',
+    statuses: [['app', 'YouTube'], ['creator', 'Creator / channel'], ['video', 'Video title']],
+  },
+  youtubeMusic: {
+    icon: 'assets/services/youtube-music.svg',
+    description: 'Songs, artists, and albums',
+    statuses: [['app', 'YouTube Music'], ['artist', 'Artist'], ['track', 'Track title']],
+  },
+  crunchyroll: {
+    icon: 'assets/services/crunchyroll.svg',
+    description: 'Anime, series, and movies',
+    statuses: [['app', 'Crunchyroll'], ['series', 'Series'], ['episode', 'Episode']],
+  },
+  movies67: {
+    icon: 'assets/services/movies67.svg',
+    description: 'Movies and television',
+    statuses: [['app', '67Movies'], ['series', 'Series'], ['episode', 'Episode']],
+  },
+});
+
+const activityView = document.getElementById('activity-view');
+const settingsView = document.getElementById('settings-view');
+const activityTab = document.getElementById('activity-tab');
+const settingsTab = document.getElementById('settings-tab');
+const form = document.getElementById('settings-form');
+const saveStatus = document.getElementById('save-status');
+const artEl = document.getElementById('art');
+const artFallback = document.getElementById('art-fallback');
 const titleEl = document.getElementById('title');
 const artistEl = document.getElementById('artist');
 const kickerEl = document.getElementById('kicker');
-const artEl = document.getElementById('art');
-const artFallback = document.getElementById('art-fallback');
 const hintEl = document.getElementById('hint');
-const modeEl = document.getElementById('mode');
-const discordActionEl = document.getElementById('discord-action');
-const sourceStatusIconEl = document.getElementById('source-status-icon');
-const activeServiceIconEl = document.getElementById('active-service-icon');
-const brandStatusEl = document.getElementById('brand-status');
+const presenceState = document.getElementById('presence-state');
+const discordAction = document.getElementById('discord-action');
+const settingsDiscordAction = document.getElementById('settings-discord-action');
+const discordStatus = document.getElementById('discord-status');
+const activeServiceIcon = document.getElementById('active-service-icon');
 let lastState = null;
+let formHasLoaded = false;
+let saveTimer = 0;
 
 function sourceIcon(track) {
-  if (track?.source === 'youtubeMusic') return 'assets/services/youtube-music.svg';
-  if (track?.source === 'youtube') return 'assets/services/youtube.svg';
-  if (track?.source === 'crunchyroll') return 'assets/services/crunchyroll.svg';
-  if (track?.source === 'movies67') return 'assets/services/movies67.svg';
-  return 'icons/icon32.png';
+  return serviceUi[track?.source]?.icon || 'icons/icon32.png';
 }
 
 function sourceName(track) {
@@ -28,118 +56,227 @@ function sourceName(track) {
     if (track.live || track.kind === 'live') return 'YouTube Live';
     return 'YouTube';
   }
-  if (track?.source === 'youtubeMusic' || track?.title) return 'YouTube Music';
+  if (track?.source === 'youtubeMusic') return 'YouTube Music';
   return 'Playback';
 }
 
-function setPill(id, state) {
-  const el = document.getElementById(id);
-  el.classList.remove('on', 'off', 'warn');
-  el.classList.add(state);
-  const label = el.querySelector('.pill-name')?.textContent.trim() || el.textContent.trim();
-  const status = state === 'on' ? 'Active' : state === 'warn' ? 'Waiting' : 'Inactive';
-  el.setAttribute('aria-label', `${label}: ${status}`);
-  el.title = `${label}: ${status}`;
-  el.dataset.status = status;
+function buildServiceSettings() {
+  const container = document.getElementById('service-settings');
+  const template = document.getElementById('service-settings-template');
+
+  for (const [source, service] of Object.entries(SERVICE_SETTINGS)) {
+    const ui = serviceUi[source];
+    const card = template.content.firstElementChild.cloneNode(true);
+    card.dataset.service = source;
+    card.querySelector('.service-summary-icon img').src = ui.icon;
+    card.querySelector('.setting-copy strong').textContent = service.label;
+    card.querySelector('.setting-copy small').textContent = ui.description;
+
+    const master = card.querySelector('.service-master input');
+    master.name = service.enabled;
+    master.setAttribute('aria-label', `Share ${service.label} activity`);
+    master.addEventListener('click', (event) => event.stopPropagation());
+
+    for (const [settingType, settingName] of Object.entries({
+      paused: service.paused,
+      status: service.status,
+      artwork: service.artwork,
+      timestamps: service.timestamps,
+      buttons: service.buttons,
+    })) {
+      const input = card.querySelector(`[data-setting="${settingType}"]`);
+      input.name = settingName;
+      if (input.tagName === 'SELECT') {
+        for (const [value, label] of ui.statuses) {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = label;
+          input.append(option);
+        }
+      }
+    }
+    container.append(card);
+  }
 }
 
-function render(state) {
+function showView(view) {
+  const showSettings = view === 'settings';
+  activityView.hidden = showSettings;
+  settingsView.hidden = !showSettings;
+  activityTab.classList.toggle('is-active', !showSettings);
+  settingsTab.classList.toggle('is-active', showSettings);
+  activityTab.setAttribute('aria-pressed', String(!showSettings));
+  settingsTab.setAttribute('aria-pressed', String(showSettings));
+  document.body.dataset.view = view;
+  (showSettings ? settingsView : activityView).scrollTop = 0;
+}
+
+function updateServiceStates(settings) {
+  for (const [source, service] of Object.entries(SERVICE_SETTINGS)) {
+    const enabled = settings[service.enabled] !== false;
+    document.querySelector(`.service-tile[data-service="${source}"]`)?.classList.toggle('enabled', enabled);
+    document.querySelector(`.service-tile[data-service="${source}"]`)?.classList.toggle('disabled', !enabled);
+    document.querySelector(`.service-settings-card[data-service="${source}"]`)?.classList.toggle('is-disabled', !enabled);
+  }
+}
+
+function renderForm(settings) {
+  const normalized = normalizeSettings(settings);
+  for (const [key, value] of Object.entries(normalized)) {
+    const input = form.elements.namedItem(key);
+    if (!input) continue;
+    if (input.type === 'checkbox') input.checked = value;
+    else input.value = value;
+  }
+  updateServiceStates(normalized);
+  formHasLoaded = true;
+}
+
+function readForm() {
+  const settings = {};
+  for (const [key, fallback] of Object.entries(DEFAULT_SETTINGS)) {
+    const input = form.elements.namedItem(key);
+    settings[key] = typeof fallback === 'boolean' ? Boolean(input?.checked) : String(input?.value || '').trim();
+  }
+  return settings;
+}
+
+function renderDiscord(delivery = {}) {
+  const authenticated = delivery.authenticated === true;
+  const buttonText = authenticated ? 'Disconnect' : 'Connect';
+  for (const button of [discordAction, settingsDiscordAction]) {
+    button.dataset.action = authenticated ? 'disconnect' : 'connect';
+    const textNode = button.querySelector('span');
+    if (textNode) textNode.textContent = buttonText;
+    else button.textContent = buttonText;
+  }
+  document.getElementById('discord-title').textContent = authenticated ? 'Discord connected' : 'Connect Discord';
+  discordStatus.textContent = authenticated ? 'Connected and ready to publish' : 'Not connected';
+  document.getElementById('discord-dot').classList.toggle('on', delivery.available === true);
+}
+
+function renderDashboard(state) {
   lastState = state;
-  const settings = state.settings || { enabled: true };
+  const settings = normalizeSettings(state.settings);
   const track = state.track;
   const source = sourceName(track);
-  const icon = sourceIcon(track);
+  const enabled = settings.enabled !== false;
+  const active = enabled && Boolean(track?.title);
 
-  enabledEl.checked = settings.enabled !== false;
-  document.body.dataset.enabled = settings.enabled !== false ? 'true' : 'false';
-  sourceStatusIconEl.src = icon;
-  activeServiceIconEl.src = icon;
-  brandStatusEl.textContent = settings.enabled === false
-    ? 'Activity sharing paused'
-    : track?.title ? `${source} is active` : 'Ready to share activity';
-  document.getElementById('pill-source-label').textContent = source;
-  setPill('pill-source', track?.title ? 'on' : 'warn');
-  setPill('pill-extension', settings.enabled !== false ? 'on' : 'off');
-  setPill('pill-discord', state.delivery?.available ? 'on' : 'off');
+  document.body.dataset.enabled = String(enabled);
+  document.getElementById('brand-status').textContent = !enabled ? 'Activity paused' : active ? `${source} active` : 'Ready to share';
+  document.getElementById('extension-dot').classList.toggle('on', enabled);
+  activeServiceIcon.src = sourceIcon(track);
+  presenceState.classList.toggle('active', active);
+  presenceState.innerHTML = `<i></i>${active ? 'Active' : enabled ? 'Waiting' : 'Paused'}`;
 
   if (track?.title) {
-    kickerEl.textContent = track.playing ? 'Now playing' : 'Paused';
+    kickerEl.textContent = track.playing ? `Now playing · ${source}` : `Paused · ${source}`;
     titleEl.textContent = track.title;
     artistEl.textContent = [track.artist, track.album].filter(Boolean).join(' • ') || source;
     if (track.artwork) {
       artEl.src = track.artwork;
       artEl.hidden = false;
-      artFallback.style.display = 'none';
+      artFallback.hidden = true;
     } else {
       artEl.hidden = true;
-      artFallback.style.display = 'grid';
+      artFallback.hidden = false;
     }
   } else {
-    kickerEl.textContent = 'Nothing playing';
-    titleEl.textContent = 'Open a supported streaming site';
-    artistEl.textContent = 'Play something on YouTube, YouTube Music, Crunchyroll, or 67Movies.';
+    kickerEl.textContent = enabled ? 'Nothing playing' : 'Activity sharing paused';
+    titleEl.textContent = enabled ? 'Open a supported streaming site' : 'ChudPresence Solo is turned off';
+    artistEl.textContent = enabled ? 'Your activity preview will appear here.' : 'Enable it in Settings when you are ready.';
     artEl.removeAttribute('src');
     artEl.hidden = true;
-    artFallback.style.display = 'grid';
+    artFallback.hidden = false;
   }
 
   titleEl.title = titleEl.textContent;
   artistEl.title = artistEl.textContent;
-  hintEl.textContent = settings.enabled === false
-    ? 'Activity sharing is paused. Turn it on to resume.'
-    : state.delivery?.message || 'Ready to detect activity from a supported site.';
-  const authenticated = state.delivery?.authenticated === true;
-  discordActionEl.textContent = authenticated ? 'Disconnect Discord' : 'Connect Discord';
-  discordActionEl.dataset.action = authenticated ? 'disconnect' : 'connect';
-  modeEl.textContent = '4 services • Local first';
+  hintEl.textContent = state.delivery?.message || (state.delivery?.authenticated ? 'Ready to share activity.' : 'Share what you are watching or listening to.');
+  renderDiscord(state.delivery);
+  updateServiceStates(settings);
+  if (!formHasLoaded) renderForm(settings);
 }
 
 async function refresh() {
   try {
     const state = await chrome.runtime.sendMessage({ type: 'GET_STATE' });
-    if (state) render(state);
+    if (state) renderDashboard(state);
   } catch {
-    hintEl.textContent = 'Reload the extension if this popup stays empty.';
+    hintEl.textContent = 'Reload the extension if this panel stays empty.';
   }
 }
 
-artEl.addEventListener('error', () => {
-  artEl.hidden = true;
-  artFallback.style.display = 'grid';
-});
+async function saveSettings() {
+  clearTimeout(saveTimer);
+  const settings = readForm();
+  await chrome.storage.local.set(settings);
+  updateServiceStates(settings);
+  document.body.dataset.enabled = String(settings.enabled);
+  saveStatus.textContent = 'Saved';
+  saveStatus.classList.add('saved');
+  saveTimer = setTimeout(() => {
+    saveStatus.textContent = 'Saved locally';
+    saveStatus.classList.remove('saved');
+  }, 1400);
+}
 
-enabledEl.addEventListener('change', async () => {
+async function updateDiscord(event) {
+  const button = event.currentTarget;
+  const otherButton = button === discordAction ? settingsDiscordAction : discordAction;
+  button.disabled = true;
+  otherButton.disabled = true;
+  discordStatus.textContent = button.dataset.action === 'disconnect' ? 'Disconnecting…' : 'Waiting for Discord…';
   try {
-    await chrome.runtime.sendMessage({ type: 'SET_ENABLED', enabled: enabledEl.checked });
-    await refresh();
-  } catch {
-    enabledEl.checked = lastState?.settings?.enabled !== false;
-    hintEl.textContent = 'Could not update activity detection. Please try again.';
-  }
-});
-
-document.getElementById('open-settings').addEventListener('click', () => {
-  chrome.runtime.openOptionsPage();
-});
-
-discordActionEl.addEventListener('click', async () => {
-  discordActionEl.disabled = true;
-  try {
-    if (discordActionEl.dataset.action === 'disconnect') {
-      await chrome.runtime.sendMessage({ type: 'DISCONNECT_DISCORD' });
-    } else if (lastState?.delivery?.configured) {
-      const result = await chrome.runtime.sendMessage({ type: 'CONNECT_DISCORD' });
-      if (!result?.ok) throw new Error(result?.error || 'Discord connection failed.');
-    } else {
-      chrome.runtime.openOptionsPage();
-    }
+    const type = button.dataset.action === 'disconnect' ? 'DISCONNECT_DISCORD' : 'CONNECT_DISCORD';
+    const result = await chrome.runtime.sendMessage({ type });
+    if (!result?.ok) throw new Error(result?.error || 'Could not update the Discord connection.');
+    renderDiscord({ ...(result.delivery || {}), authenticated: result.setup?.authenticated });
     await refresh();
   } catch (error) {
-    hintEl.textContent = error.message || 'Could not update the Discord connection.';
+    discordStatus.textContent = error.message || 'Could not update the Discord connection.';
+    hintEl.textContent = discordStatus.textContent;
   } finally {
-    discordActionEl.disabled = false;
+    button.disabled = false;
+    otherButton.disabled = false;
   }
+}
+
+buildServiceSettings();
+
+activityTab.addEventListener('click', () => showView('activity'));
+document.getElementById('show-activity').addEventListener('click', () => showView('activity'));
+settingsTab.addEventListener('click', () => showView('settings'));
+document.getElementById('open-settings').addEventListener('click', () => showView('settings'));
+document.getElementById('manage-services').addEventListener('click', () => {
+  showView('settings');
+  const firstService = document.querySelector('.service-settings-card');
+  if (firstService) firstService.open = true;
 });
 
+form.addEventListener('change', (event) => {
+  if (!event.target.name) return;
+  saveSettings().catch(() => {
+    saveStatus.classList.remove('saved');
+    saveStatus.textContent = 'Could not save';
+  });
+});
+
+document.getElementById('reset').addEventListener('click', () => {
+  renderForm(DEFAULT_SETTINGS);
+  saveSettings().catch(() => { saveStatus.textContent = 'Could not restore defaults'; });
+});
+
+discordAction.addEventListener('click', updateDiscord);
+settingsDiscordAction.addEventListener('click', updateDiscord);
+artEl.addEventListener('error', () => {
+  artEl.hidden = true;
+  artFallback.hidden = false;
+});
+
+if (location.hash === '#settings') showView('settings');
 refresh();
-setInterval(refresh, 1000);
+setInterval(() => {
+  if (document.body.dataset.view === 'activity') refresh();
+}, 1000);

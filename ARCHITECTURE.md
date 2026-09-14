@@ -87,11 +87,11 @@ the bot's presence, not the authenticated user's presence.
   to Discord's headless activity payload.
 - `extension/platform/presence-publisher.js` remains the delivery boundary. A
   future supported connector can replace this layer without changing adapters.
-- `extension/popup.*` renders detected activity and the real publisher status.
-- `extension/options.*` owns the settings UI, while `core/settings.js` owns
-  defaults, legacy-global-preference migration, presence preferences, and
-  provider filtering. `config.js` owns the fixed Discord application identities
-  and OAuth redirect URI. Paused-media visibility and
+- `extension/popup.*` renders detected activity, publisher status, and the
+  in-panel settings experience. `core/settings.js` owns defaults,
+  legacy-global-preference migration, presence preferences, and provider
+  filtering. `config.js` owns the fixed Discord application identities and
+  OAuth redirect URI. Paused-media visibility and
   member-list status text are selected independently for each provider.
 
 Provider tracks may contain `source`, `kind`, `title`, `artist`, `album`,
