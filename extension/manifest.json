@@ -70,7 +70,7 @@
       "run_at": "document_idle"
     }
   ],
-  "permissions": ["alarms", "identity", "storage"],
+  "permissions": ["alarms", "identity", "offscreen", "storage"],
   "host_permissions": [
     "https://discord.com/api/*",
     "https://discord.com/oauth2/*"

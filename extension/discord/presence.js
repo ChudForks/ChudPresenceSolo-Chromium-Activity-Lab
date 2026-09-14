@@ -2,6 +2,7 @@ import {
   authorize,
   DiscordRateLimitError,
   discordRequest,
+  getAccessToken,
   getAuthState,
   getClientId,
   getRedirectUrl,
@@ -9,6 +10,7 @@ import {
   revokeAuthorization,
 } from './auth.js';
 import { buildHeadlessActivity } from './activity-builder.js';
+import { armShutdownCleanup, disarmShutdownCleanup } from './shutdown-cleanup.js';
 
 const SESSION_STORAGE_KEY = 'discordHeadlessSession';
 const LAST_INTENT_STORAGE_KEY = 'discordLastIntent';
@@ -129,6 +131,12 @@ async function saveLastIntent() {
   else await chrome.storage.session.remove(LAST_INTENT_STORAGE_KEY);
 }
 
+async function armCurrentShutdownCleanup() {
+  if (!sessionToken || !getAuthState().authenticated) return false;
+  const accessToken = await getAccessToken();
+  return armShutdownCleanup(accessToken, sessionToken);
+}
+
 async function updateSession(intent, applicationId, force = false) {
   if (!getAuthState().authenticated) return refreshIdleStatus();
   if (rateLimitUntil > Date.now()) {
@@ -168,12 +176,16 @@ async function updateSession(intent, applicationId, force = false) {
   lastSentAt = Date.now();
   clearPendingRetry();
   await Promise.all([saveSession(), saveLastIntent()]);
+  await armCurrentShutdownCleanup().catch(() => false);
   return setStatus('active', `Sharing activity as ${getAuthState().user?.username || 'your Discord account'}.`, true);
 }
 
 async function clearSession() {
   clearPendingRetry();
-  if (!sessionToken && !lastIntent && !lastActivityIdentity) return refreshIdleStatus();
+  if (!sessionToken && !lastIntent && !lastActivityIdentity) {
+    await disarmShutdownCleanup().catch(() => {});
+    return refreshIdleStatus();
+  }
   lastIntent = null;
   lastApplicationId = '';
   lastActivityIdentity = '';
@@ -188,6 +200,7 @@ async function clearSession() {
       body: JSON.stringify({ token }),
     }).catch(() => {});
   }
+  await disarmShutdownCleanup().catch(() => {});
   return refreshIdleStatus();
 }
 
@@ -214,6 +227,7 @@ export const discordPresence = Object.freeze({
     }
     await chrome.alarms.create(RENEW_ALARM, { periodInMinutes: 10 });
     initialized = true;
+    await armCurrentShutdownCleanup().catch(() => false);
     return refreshIdleStatus();
   },
 

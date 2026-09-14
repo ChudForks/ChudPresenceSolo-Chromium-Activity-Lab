@@ -107,6 +107,12 @@ publisher returns a delivery status with `id`, `available`,
 ## Reliability boundary
 
 The extension explicitly clears activity during normal pause, disable, and logout
-flows. If the browser is killed, Discord's approximately 20-minute Headless
-Session expiry is the cleanup fallback. A ten-minute extension alarm renews an
-active session while the browser remains available.
+flows. While a Headless Session is active, an extension-owned offscreen document
+also holds a Chrome `fetchLater()` request containing the current session and
+access tokens in memory. Chrome activates that request when the document is
+destroyed during a normal browser shutdown. Credentials never enter a provider
+content script or page context. If deferred fetch is unavailable, the browser is
+killed, or the cleanup request cannot reach Discord, Discord's approximately
+20-minute Headless Session expiry remains the cleanup fallback. A ten-minute
+extension alarm renews an active session and replaces the deferred cleanup request
+with fresh credentials while the browser remains available.
