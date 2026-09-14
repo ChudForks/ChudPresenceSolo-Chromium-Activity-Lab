@@ -7,7 +7,18 @@ const artFallback = document.getElementById('art-fallback');
 const hintEl = document.getElementById('hint');
 const modeEl = document.getElementById('mode');
 const discordActionEl = document.getElementById('discord-action');
+const sourceStatusIconEl = document.getElementById('source-status-icon');
+const activeServiceIconEl = document.getElementById('active-service-icon');
+const brandStatusEl = document.getElementById('brand-status');
 let lastState = null;
+
+function sourceIcon(track) {
+  if (track?.source === 'youtubeMusic') return 'assets/services/youtube-music.svg';
+  if (track?.source === 'youtube') return 'assets/services/youtube.svg';
+  if (track?.source === 'crunchyroll') return 'assets/services/crunchyroll.svg';
+  if (track?.source === 'movies67') return 'assets/services/movies67.svg';
+  return 'icons/icon32.png';
+}
 
 function sourceName(track) {
   if (track?.source === 'movies67') return '67Movies';
@@ -18,17 +29,18 @@ function sourceName(track) {
     return 'YouTube';
   }
   if (track?.source === 'youtubeMusic' || track?.title) return 'YouTube Music';
-  return 'Supported site';
+  return 'Playback';
 }
 
 function setPill(id, state) {
   const el = document.getElementById(id);
   el.classList.remove('on', 'off', 'warn');
   el.classList.add(state);
-  const label = el.textContent.trim();
+  const label = el.querySelector('.pill-name')?.textContent.trim() || el.textContent.trim();
   const status = state === 'on' ? 'Active' : state === 'warn' ? 'Waiting' : 'Inactive';
   el.setAttribute('aria-label', `${label}: ${status}`);
   el.title = `${label}: ${status}`;
+  el.dataset.status = status;
 }
 
 function render(state) {
@@ -36,8 +48,15 @@ function render(state) {
   const settings = state.settings || { enabled: true };
   const track = state.track;
   const source = sourceName(track);
+  const icon = sourceIcon(track);
 
   enabledEl.checked = settings.enabled !== false;
+  document.body.dataset.enabled = settings.enabled !== false ? 'true' : 'false';
+  sourceStatusIconEl.src = icon;
+  activeServiceIconEl.src = icon;
+  brandStatusEl.textContent = settings.enabled === false
+    ? 'Activity sharing paused'
+    : track?.title ? `${source} is active` : 'Ready to share activity';
   document.getElementById('pill-source-label').textContent = source;
   setPill('pill-source', track?.title ? 'on' : 'warn');
   setPill('pill-extension', settings.enabled !== false ? 'on' : 'off');
@@ -67,12 +86,12 @@ function render(state) {
   titleEl.title = titleEl.textContent;
   artistEl.title = artistEl.textContent;
   hintEl.textContent = settings.enabled === false
-    ? 'Activity detection is paused. Flip the switch to resume it.'
-    : state.delivery?.message || 'Activity is detected locally in the extension.';
+    ? 'Activity sharing is paused. Turn it on to resume.'
+    : state.delivery?.message || 'Ready to detect activity from a supported site.';
   const authenticated = state.delivery?.authenticated === true;
   discordActionEl.textContent = authenticated ? 'Disconnect Discord' : 'Connect Discord';
   discordActionEl.dataset.action = authenticated ? 'disconnect' : 'connect';
-  modeEl.textContent = 'Extension only • No companion app';
+  modeEl.textContent = '4 services • Local first';
 }
 
 async function refresh() {

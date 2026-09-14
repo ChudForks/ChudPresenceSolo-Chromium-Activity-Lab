@@ -49,10 +49,10 @@ function setStatus(state, message, available = false) {
 function refreshIdleStatus() {
   const authState = getAuthState();
   if (!authState.configured) {
-    return setStatus('configuration-required', 'Discord application configuration is unavailable.', false);
+    return setStatus('configuration-required', 'Discord connection is unavailable in this build.', false);
   }
   if (!authState.authenticated) {
-    return setStatus('disconnected', 'Discord is configured. Connect your account to publish activity.', false);
+    return setStatus('disconnected', 'Connect Discord to start sharing your activity.', false);
   }
   return setStatus('connected', `Connected as ${authState.user?.username || 'Discord user'}.`, true);
 }
@@ -168,7 +168,7 @@ async function updateSession(intent, applicationId, force = false) {
   lastSentAt = Date.now();
   clearPendingRetry();
   await Promise.all([saveSession(), saveLastIntent()]);
-  return setStatus('active', `Publishing to Discord as ${getAuthState().user?.username || 'connected user'}.`, true);
+  return setStatus('active', `Sharing activity as ${getAuthState().user?.username || 'your Discord account'}.`, true);
 }
 
 async function clearSession() {
@@ -223,7 +223,7 @@ export const discordPresence = Object.freeze({
 
   async connect() {
     await this.initialize();
-    setStatus('connecting', 'Waiting for Discord authorization…', false);
+    setStatus('connecting', 'Finish signing in to Discord to continue…', false);
     try {
       await authorize();
       return refreshIdleStatus();

@@ -11,8 +11,9 @@
       <div class="brand">
         <img class="logo" src="icons/icon48.png" alt="" />
         <div>
-          <h1>ChudPresence Solo</h1>
-          <p>Extension-only activity detection.</p>
+          <div class="brand-eyebrow">PRESENCE, SIMPLIFIED</div>
+          <h1>ChudPresence <span>Solo</span></h1>
+          <p><span class="live-dot"></span><span id="brand-status">Ready to share activity</span></p>
         </div>
       </div>
       <label class="switch">
@@ -21,44 +22,54 @@
       </label>
     </header>
 
-    <div class="section-label">Connections</div>
+    <div class="section-label">Connection overview</div>
     <section class="status-row" aria-label="Connection status">
-      <div class="pill" id="pill-source">
+      <div class="pill" id="pill-source" data-status="Waiting">
         <span class="dot"></span>
-        <span id="pill-source-label">Supported site</span>
+        <img class="pill-icon" id="source-status-icon" src="icons/icon32.png" alt="" />
+        <span class="pill-copy"><span class="pill-name" id="pill-source-label">Playback</span><small>Source</small></span>
       </div>
-      <div class="pill" id="pill-extension">
+      <div class="pill" id="pill-extension" data-status="Inactive">
         <span class="dot"></span>
-        Extension
+        <img class="pill-icon" src="icons/icon32.png" alt="" />
+        <span class="pill-copy"><span class="pill-name">Extension</span><small>Engine</small></span>
       </div>
-      <div class="pill" id="pill-discord">
+      <div class="pill" id="pill-discord" data-status="Inactive">
         <span class="dot"></span>
-        Discord
+        <img class="pill-icon" src="assets/services/discord.svg" alt="" />
+        <span class="pill-copy"><span class="pill-name">Discord</span><small>Output</small></span>
       </div>
     </section>
 
-    <div class="section-label">Activity preview</div>
+    <div class="preview-heading"><div class="section-label">Activity preview</div><span class="preview-caption">On your profile</span></div>
     <section class="now" id="now" aria-label="Current playback">
       <div class="art-wrap">
         <img id="art" alt="Playback artwork" hidden />
-        <div class="art-fallback" id="art-fallback">♪</div>
+        <div class="art-fallback" id="art-fallback" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><rect x="4" y="7" width="24" height="18" rx="5" stroke="currentColor" stroke-width="1.5"/><path d="m13 12 7 4-7 4z" fill="currentColor"/></svg></div>
+        <span class="service-mark"><img id="active-service-icon" src="icons/icon32.png" alt="" /></span>
       </div>
       <div class="meta">
         <div class="kicker" id="kicker">Nothing playing</div>
         <div class="title" id="title">Open a supported streaming site</div>
-        <div class="artist" id="artist">Your video, track, or episode will show here.</div>
+        <div class="artist" id="artist">Your current activity will appear here.</div>
       </div>
     </section>
 
     <p class="hint" id="hint" role="status"></p>
 
     <div class="discord-actions">
-      <button id="discord-action" type="button">Connect Discord</button>
+      <button id="discord-action" type="button"><span>Connect Discord</span></button>
     </div>
 
     <footer>
-      <span id="mode">Extension only • No companion app</span>
-      <button id="open-settings" type="button">Settings</button>
+      <span class="service-list" aria-label="Supported services">
+        <img src="assets/services/youtube.svg" alt="YouTube" title="YouTube" />
+        <img src="assets/services/youtube-music.svg" alt="YouTube Music" title="YouTube Music" />
+        <img src="assets/services/crunchyroll.svg" alt="Crunchyroll" title="Crunchyroll" />
+        <img src="assets/services/movies67.svg" alt="67Movies" title="67Movies" />
+        <span id="mode">4 services</span>
+      </span>
+      <button id="open-settings" type="button">Settings <span aria-hidden="true">↗</span></button>
     </footer>
     <script src="popup.js"></script>
   </body>
