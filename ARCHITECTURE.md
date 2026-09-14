@@ -1,6 +1,6 @@
 # Architecture
 
-ChudPresenceSolo is one Manifest V3 Chromium extension. It has no localhost
+ChudPresence Solo is one Manifest V3 Chromium extension. It has no localhost
 server, native process, installer, autostart entry, or bundled runtime.
 
 ## Layered flow
@@ -46,7 +46,7 @@ delivery are separate concerns.
 Discord does not document a supported public REST endpoint for browser extensions
 to set a user's Rich Presence. It does, however, currently expose an undocumented
 Headless Sessions endpoint that accepts OAuth access tokens carrying the
-`sdk.social_layer_presence` scope. ChudPresenceSolo uses that endpoint as an
+`sdk.social_layer_presence` scope. ChudPresence Solo uses that endpoint as an
 explicitly experimental transport.
 
 Discord currently supports off-platform Rich Presence through its native Social
@@ -59,10 +59,10 @@ For a supported production publisher, the documented product choices remain:
 
 1. Allow a small native host using Discord's Social SDK. This is the direct and
    supported Rich Presence route, but it is a companion component.
-2. Turn ChudPresence into a Discord Activity using the Embedded App SDK. This is
+2. Turn ChudPresence Solo into a Discord Activity using the Embedded App SDK. This is
    browser technology, but users must run the Activity inside Discord and a
    secure relay would be needed to receive browser-extension events.
-3. Keep ChudPresenceSolo extension-only and fall back to local preview whenever
+3. Keep ChudPresence Solo extension-only and fall back to local preview whenever
    its experimental Headless Sessions transport is unavailable.
 
 A bot or ordinary OAuth-backed web service is not a fourth option: it can update

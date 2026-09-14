@@ -1,3 +1,5 @@
+import { EXTENSION_NAME } from './branding.js';
+
 const MAX_TEXT_LENGTH = 128;
 
 const SOURCE_LABELS = Object.freeze({
@@ -24,7 +26,7 @@ function safeUrl(value) {
 }
 
 function sourceLabel(track) {
-  return SOURCE_LABELS[track?.source] || 'ChudPresence';
+  return SOURCE_LABELS[track?.source] || EXTENSION_NAME;
 }
 
 function activityType(track) {

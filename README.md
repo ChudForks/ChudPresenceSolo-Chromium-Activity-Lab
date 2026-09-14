@@ -1,6 +1,6 @@
-# ChudPresenceSolo
+# ChudPresence Solo
 
-ChudPresenceSolo is an extension-only foundation for detecting playback on YouTube,
+ChudPresence Solo is an extension-only foundation for detecting playback on YouTube,
 YouTube Music, Crunchyroll, and 67Movies.
 
 The old Node.js companion, localhost bridge, system tray app, Windows installer,
@@ -11,7 +11,7 @@ it in its popup, and can experimentally publish it directly to Discord.
 > extension-only transport may change or stop working without notice. It uses
 > Discord OAuth with PKCE and never asks for a Discord account token. Discord's
 > required `sdk.social_layer_presence` scope authorizes more Social SDK features
-> than this extension uses; ChudPresence only calls user info and presence routes.
+> than this extension uses; ChudPresence Solo only calls user info and presence routes.
 
 ## Load the extension
 

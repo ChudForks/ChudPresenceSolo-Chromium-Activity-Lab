@@ -1,4 +1,4 @@
-const SOURCE = 'chudpresence';
+const SOURCE = 'chudpresence-solo';
 
 let mediaSession = {
   playbackState: 'none',

@@ -1,5 +1,5 @@
 (() => {
-  const SOURCE = 'chudpresence-crunchyroll-player';
+  const SOURCE = 'chudpresence-solo-crunchyroll-player';
 
   function findVideo() {
     return (

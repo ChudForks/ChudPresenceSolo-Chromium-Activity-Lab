@@ -1,5 +1,5 @@
 (() => {
-  const SOURCE = 'chudpresence';
+  const SOURCE = 'chudpresence-solo';
 
   const videoIdFromHref = (href) => {
     if (!href) return '';

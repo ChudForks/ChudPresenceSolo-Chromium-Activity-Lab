@@ -1,3 +1,5 @@
+import { EXTENSION_NAME } from '../core/branding.js';
+
 const ACTIVITY_TYPES = Object.freeze({ playing: 0, listening: 2, watching: 3 });
 const STATUS_DISPLAY_TYPES = Object.freeze({ name: 0, state: 1, details: 2 });
 
@@ -13,10 +15,10 @@ export function buildHeadlessActivity(intent, applicationId) {
     application_id: String(applicationId),
     platform: 'desktop',
     supported_platforms: ['desktop'],
-    name: intent.name || 'ChudPresence',
+    name: intent.name || EXTENSION_NAME,
     type: ACTIVITY_TYPES[intent.type] ?? ACTIVITY_TYPES.playing,
     details: intent.details,
-    state: intent.state || intent.name || 'ChudPresence',
+    state: intent.state || intent.name || EXTENSION_NAME,
     status_display_type: STATUS_DISPLAY_TYPES[intent.statusDisplayType] ?? STATUS_DISPLAY_TYPES.name,
   };
 
@@ -29,7 +31,7 @@ export function buildHeadlessActivity(intent, applicationId) {
   if (intent.assets?.largeImage) {
     activity.assets = {
       large_image: intent.assets.largeImage,
-      large_text: intent.assets.largeText || intent.name || 'ChudPresence',
+      large_text: intent.assets.largeText || intent.name || EXTENSION_NAME,
     };
     if (intent.assets.smallImage) activity.assets.small_image = intent.assets.smallImage;
     if (intent.assets.smallText) activity.assets.small_text = intent.assets.smallText;

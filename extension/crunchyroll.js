@@ -1,4 +1,4 @@
-const PLAYER_SOURCE = 'chudpresence-crunchyroll-player';
+const PLAYER_SOURCE = 'chudpresence-solo-crunchyroll-player';
 
 let playerFrame = {
   currentTime: 0,

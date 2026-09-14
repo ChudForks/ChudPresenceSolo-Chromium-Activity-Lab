@@ -10,6 +10,7 @@ import {
   presenceDetailsForSource,
 } from './core/settings.js';
 import { presencePublisher } from './platform/presence-publisher.js';
+import { EXTENSION_NAME } from './core/branding.js';
 
 const tracksByTab = new Map();
 const closedTabIds = new Set();
@@ -44,7 +45,7 @@ function currentTrack() {
 
 function setAction(track) {
   const suffix = track?.artist ? ` — ${track.artist}` : '';
-  chrome.action.setTitle({ title: track?.title ? `${track.title}${suffix}` : 'ChudPresence' });
+  chrome.action.setTitle({ title: track?.title ? `${track.title}${suffix}` : EXTENSION_NAME });
 }
 
 async function publishCurrentActivity() {
