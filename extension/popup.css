@@ -1,0 +1,53 @@
+:root {
+  color-scheme: dark;
+  --bg: #0d1017;
+  --card: #171c27;
+  --line: #2a3242;
+  --text: #f5f6fa;
+  --muted: #a5afc1;
+  --red: #ff6483;
+  --green: #62ddb0;
+  --yellow: #f1c775;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 392px; color: var(--text); font: 13px/1.5 'Segoe UI', system-ui, sans-serif; background: var(--bg); }
+body { padding: 22px; background: radial-gradient(ellipse at top right, #252039 0, transparent 55%), var(--bg); }
+.top, .brand { display: flex; align-items: center; gap: 12px; }
+.top { justify-content: space-between; margin-bottom: 25px; }
+.brand { min-width: 0; }
+.logo { width: 42px; height: 42px; border-radius: 12px; box-shadow: 0 4px 18px #0005; }
+h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.5px; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 11px; }
+.switch { position: relative; width: 42px; height: 24px; flex: 0 0 auto; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; }
+.slider { position: absolute; inset: 0; background: #41495b; border-radius: 99px; cursor: pointer; transition: background .18s; }
+.slider::after { content: ''; position: absolute; width: 18px; height: 18px; top: 3px; left: 3px; background: white; border-radius: 50%; transition: transform .18s; box-shadow: 0 2px 4px #0004; }
+.switch input:checked + .slider { background: var(--red); }
+.switch input:checked + .slider::after { transform: translateX(18px); }
+.switch input:focus-visible + .slider { outline: 2px solid #c5bdff; outline-offset: 4px; }
+.section-label { font-size: 10px; text-transform: uppercase; letter-spacing: .13em; font-weight: 700; color: var(--muted); margin-bottom: 9px; }
+.status-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin: 0 0 22px; }
+.pill { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; padding: 10px 9px; border: 1px solid var(--line); border-radius: 10px; background: #171c27b3; color: var(--muted); font-size: 11px; font-weight: 600; }
+.pill > span:last-child { overflow-wrap: anywhere; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: #697386; flex: 0 0 auto; }
+.pill.on .dot { background: var(--green); box-shadow: 0 0 0 3px #62ddb014; }
+.pill.warn .dot { background: var(--yellow); }
+.pill.off .dot { background: var(--red); }
+.pill.on { color: #d8e9e4; }
+.now { display: grid; grid-template-columns: 82px minmax(0, 1fr); align-items: center; gap: 14px; min-height: 136px; padding: 17px; background: linear-gradient(135deg, #222838, #181d28); border: 1px solid #353d50; border-radius: 16px; box-shadow: 0 8px 24px #0002; }
+.art-wrap { position: relative; width: 82px; height: 82px; border-radius: 12px; overflow: hidden; background: #10141e; }
+#art, .art-fallback { width: 100%; height: 100%; object-fit: cover; }
+.art-fallback { display: grid; place-items: center; color: var(--red); font-size: 34px; background: linear-gradient(145deg, #31243c, #161b29); }
+#art[hidden] { display: none; }
+.meta { min-width: 0; }
+.kicker { color: var(--red); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.title { margin-top: 6px; font-size: 15px; font-weight: 650; line-height: 1.35; }
+.title, .artist { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.artist { margin-top: 5px; color: var(--muted); font-size: 12px; }
+.hint { margin: 14px 0 19px; padding-left: 11px; border-left: 2px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.6; }
+.hint:empty { display: none; }
+footer { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 11px; }
+footer button { border: 0; padding: 4px 0 4px 10px; color: #d6d0ff; font: inherit; font-weight: 650; background: transparent; cursor: pointer; }
+footer button:hover { color: white; }
+footer button:focus-visible { outline: 2px solid #c5bdff; outline-offset: 3px; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::after { transition: none !important; } }

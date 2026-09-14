@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChudPresence</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <img class="logo" src="icons/icon48.png" alt="" />
+        <div>
+          <h1>ChudPresence</h1>
+          <p>Extension-only activity detection.</p>
+        </div>
+      </div>
+      <label class="switch">
+        <input id="enabled" type="checkbox" aria-label="Detect playback activity" />
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <div class="section-label">Connections</div>
+    <section class="status-row" aria-label="Connection status">
+      <div class="pill" id="pill-source">
+        <span class="dot"></span>
+        <span id="pill-source-label">Supported site</span>
+      </div>
+      <div class="pill" id="pill-extension">
+        <span class="dot"></span>
+        Extension
+      </div>
+      <div class="pill" id="pill-discord">
+        <span class="dot"></span>
+        Discord
+      </div>
+    </section>
+
+    <div class="section-label">Activity preview</div>
+    <section class="now" id="now" aria-label="Current playback">
+      <div class="art-wrap">
+        <img id="art" alt="Playback artwork" hidden />
+        <div class="art-fallback" id="art-fallback">♪</div>
+      </div>
+      <div class="meta">
+        <div class="kicker" id="kicker">Nothing playing</div>
+        <div class="title" id="title">Open a supported streaming site</div>
+        <div class="artist" id="artist">Your video, track, or episode will show here.</div>
+      </div>
+    </section>
+
+    <p class="hint" id="hint" role="status"></p>
+
+    <footer>
+      <span id="mode">Extension only • No companion app</span>
+      <button id="open-settings" type="button">Settings</button>
+    </footer>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ChudPresenceSolo settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <img src="icons/icon128.png" alt="" />
+        <div>
+          <p class="eyebrow">ChudPresenceSolo</p>
+          <h1>Settings</h1>
+          <p>Choose which activity is detected and what is included in presence data.</p>
+        </div>
+      </header>
+
+      <form id="settings-form">
+        <section class="card">
+          <div class="section-heading">
+            <div>
+              <h2>Activity detection</h2>
+              <p>Control detection across every supported tab.</p>
+            </div>
+            <label class="switch">
+              <input id="enabled" name="enabled" type="checkbox" />
+              <span aria-hidden="true"></span>
+              <strong>Enabled</strong>
+            </label>
+          </div>
+          <label class="row">
+            <span><strong>Show paused media</strong><small>Keep the last paused item available as activity.</small></span>
+            <input name="showPaused" type="checkbox" />
+          </label>
+        </section>
+
+        <section class="card">
+          <div class="section-heading">
+            <div>
+              <h2>Sources</h2>
+              <p>Disabled sources are ignored even if their tabs remain open.</p>
+            </div>
+          </div>
+          <div class="source-grid">
+            <label><input name="sourceYouTube" type="checkbox" /><span>YouTube</span></label>
+            <label><input name="sourceYouTubeMusic" type="checkbox" /><span>YouTube Music</span></label>
+            <label><input name="sourceCrunchyroll" type="checkbox" /><span>Crunchyroll</span></label>
+            <label><input name="sourceMovies67" type="checkbox" /><span>67Movies</span></label>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-heading">
+            <div>
+              <h2>Presence details</h2>
+              <p>These preferences apply at the publisher boundary.</p>
+            </div>
+          </div>
+          <label class="row">
+            <span><strong>Artwork</strong><small>Include the thumbnail or cover supplied by the site.</small></span>
+            <input name="showArtwork" type="checkbox" />
+          </label>
+          <label class="row">
+            <span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps while playing.</small></span>
+            <input name="showTimestamps" type="checkbox" />
+          </label>
+          <label class="row">
+            <span><strong>Watch and listen links</strong><small>Include up to two HTTPS activity links.</small></span>
+            <input name="showButtons" type="checkbox" />
+          </label>
+        </section>
+
+        <aside class="notice">
+          <span class="notice-dot" aria-hidden="true"></span>
+          <div><strong>Discord transport unavailable</strong><p>The extension prepares these details, but an extension-only Discord Rich Presence connection is not currently supported.</p></div>
+        </aside>
+
+        <div class="actions">
+          <p id="save-status" role="status" aria-live="polite">Changes save automatically.</p>
+          <button id="reset" type="button">Restore defaults</button>
+        </div>
+      </form>
+    </main>
+    <script type="module" src="options.js"></script>
+  </body>
+</html>
