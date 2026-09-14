@@ -77,6 +77,8 @@ the bot's presence, not the authenticated user's presence.
   Discord-shaped presence intent. It owns text limits, safe external URLs,
   timers, artwork, and buttons.
 - `extension/background.js` owns browser lifecycle, settings, and orchestration.
+  It selects the active service profile before handing an intent to the
+  publisher.
 - `extension/discord/auth.js` owns OAuth PKCE, refresh, revocation, and isolated
   token storage.
 - `extension/discord/presence.js` owns Headless Sessions, renewal, clearing, and
@@ -87,15 +89,20 @@ the bot's presence, not the authenticated user's presence.
   future supported connector can replace this layer without changing adapters.
 - `extension/popup.*` renders detected activity and the real publisher status.
 - `extension/options.*` owns the settings UI, while `core/settings.js` owns
-  defaults, normalization, and provider filtering.
+  defaults, legacy-global-detail migration, per-service application IDs and
+  presence preferences, and provider filtering. The paused-media preference
+  remains global.
 
 Provider tracks may contain `source`, `kind`, `title`, `artist`, `album`,
 `artwork`, `url`, `channelUrl`, `playing`, `idle`, `ad`, `live`, `position`, and
 `duration`. Consumers tolerate missing optional fields.
 
-The publisher accepts either a presence intent or `null`; `null` means clear the
-presence. It returns a delivery status with `id`, `available`, `state`, and
-`message` so UI code never has to know which transport is installed.
+The publisher accepts a presence intent plus the active service's optional
+Discord application ID, or `null` to clear the presence. A blank service ID
+falls back to the ChudPresenceSolo OAuth application ID. The OAuth application
+owns the single shared Discord login; service IDs only identify the displayed
+activity. The publisher returns a delivery status with `id`, `available`,
+`state`, and `message` so UI code never has to know which transport is installed.
 
 ## Reliability boundary
 

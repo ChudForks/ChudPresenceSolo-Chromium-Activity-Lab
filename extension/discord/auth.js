@@ -100,7 +100,9 @@ export function getAuthState() {
 export async function setClientId(value) {
   await initializeAuth();
   const next = String(value || '').trim();
-  if (next && !/^\d{17,20}$/.test(next)) throw new Error('Enter a valid Discord application ID.');
+  if (next && !/^\d{17,20}$/.test(next)) {
+    throw new Error('Enter a valid ChudPresenceSolo OAuth application ID.');
+  }
   const changed = next !== clientId;
   if (changed && auth) await revokeAuthorization().catch(() => {});
   clientId = next;
@@ -140,7 +142,9 @@ export async function discordRequest(path, options = {}, retry = true) {
 
 export async function authorize() {
   await initializeAuth();
-  if (!/^\d{17,20}$/.test(clientId)) throw new Error('Configure a Discord application ID first.');
+  if (!/^\d{17,20}$/.test(clientId)) {
+    throw new Error('Configure the ChudPresenceSolo OAuth application ID first.');
+  }
 
   const verifier = randomBase64Url(64);
   const state = randomBase64Url(24);

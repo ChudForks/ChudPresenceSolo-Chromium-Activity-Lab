@@ -18,6 +18,7 @@ const MIN_UPDATE_INTERVAL_MS = 12_000;
 
 let sessionToken = '';
 let lastIntent = null;
+let lastApplicationId = '';
 let lastActivityIdentity = '';
 let lastSentAt = 0;
 let initialized = false;
@@ -43,7 +44,7 @@ function setStatus(state, message, available = false) {
 function refreshIdleStatus() {
   const authState = getAuthState();
   if (!authState.configured) {
-    return setStatus('configuration-required', 'Add a Discord application ID in Settings.', false);
+    return setStatus('configuration-required', 'Add the ChudPresenceSolo OAuth application ID in Settings.', false);
   }
   if (!authState.authenticated) {
     return setStatus('disconnected', 'Discord is configured. Connect your account to publish activity.', false);
@@ -64,13 +65,17 @@ async function saveSession() {
 }
 
 async function saveLastIntent() {
-  if (lastIntent) await chrome.storage.session.set({ [LAST_INTENT_STORAGE_KEY]: lastIntent });
+  if (lastIntent) {
+    await chrome.storage.session.set({
+      [LAST_INTENT_STORAGE_KEY]: { intent: lastIntent, applicationId: lastApplicationId },
+    });
+  }
   else await chrome.storage.session.remove(LAST_INTENT_STORAGE_KEY);
 }
 
-async function updateSession(intent, force = false) {
+async function updateSession(intent, applicationId, force = false) {
   if (!getAuthState().authenticated) return refreshIdleStatus();
-  const activity = buildHeadlessActivity(intent, getClientId());
+  const activity = buildHeadlessActivity(intent, applicationId || getClientId());
   if (!activity) return clearSession();
 
   const identity = activityIdentity(activity);
@@ -99,6 +104,7 @@ async function updateSession(intent, force = false) {
 
   sessionToken = result?.token || sessionToken;
   lastIntent = intent;
+  lastApplicationId = applicationId || '';
   lastActivityIdentity = identity;
   lastSentAt = Date.now();
   await Promise.all([saveSession(), saveLastIntent()]);
@@ -108,6 +114,7 @@ async function updateSession(intent, force = false) {
 async function clearSession() {
   if (!sessionToken && !lastIntent && !lastActivityIdentity) return refreshIdleStatus();
   lastIntent = null;
+  lastApplicationId = '';
   lastActivityIdentity = '';
   lastSentAt = 0;
   const token = sessionToken;
@@ -135,7 +142,15 @@ export const discordPresence = Object.freeze({
     const stored = await chrome.storage.local.get(SESSION_STORAGE_KEY);
     const transient = await chrome.storage.session.get(LAST_INTENT_STORAGE_KEY);
     sessionToken = String(stored[SESSION_STORAGE_KEY] || '');
-    lastIntent = transient[LAST_INTENT_STORAGE_KEY] || null;
+    const savedPresence = transient[LAST_INTENT_STORAGE_KEY] || null;
+    if (savedPresence?.intent) {
+      lastIntent = savedPresence.intent;
+      lastApplicationId = String(savedPresence.applicationId || '');
+    } else {
+      // Migrate the pre-service-profile session shape.
+      lastIntent = savedPresence;
+      lastApplicationId = '';
+    }
     await chrome.alarms.create(RENEW_ALARM, { periodInMinutes: 10 });
     initialized = true;
     return refreshIdleStatus();
@@ -171,10 +186,10 @@ export const discordPresence = Object.freeze({
     return refreshIdleStatus();
   },
 
-  async publish(intent) {
+  async publish(intent, applicationId = '') {
     await this.initialize();
     try {
-      return await enqueue(() => (intent ? updateSession(intent) : clearSession()));
+      return await enqueue(() => (intent ? updateSession(intent, applicationId) : clearSession()));
     } catch (error) {
       return setStatus('error', error.message || 'Discord presence update failed.', false);
     }
@@ -184,7 +199,7 @@ export const discordPresence = Object.freeze({
     await this.initialize();
     if (!lastIntent || !getAuthState().authenticated) return refreshIdleStatus();
     try {
-      return await enqueue(() => updateSession(lastIntent, true));
+      return await enqueue(() => updateSession(lastIntent, lastApplicationId, true));
     } catch (error) {
       return setStatus('error', error.message || 'Discord session renewal failed.', false);
     }

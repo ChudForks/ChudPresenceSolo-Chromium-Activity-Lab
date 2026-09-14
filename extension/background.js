@@ -1,6 +1,13 @@
 import { selectActivity } from './core/activity.js';
 import { createPresenceIntent } from './core/presence.js';
-import { DEFAULT_SETTINGS, isTrackAllowed, normalizeSettings } from './core/settings.js';
+import {
+  applicationIdForSource,
+  DEFAULT_SETTINGS,
+  isTrackAllowed,
+  LEGACY_DETAIL_SETTINGS,
+  normalizeSettings,
+  presenceDetailsForSource,
+} from './core/settings.js';
 import { presencePublisher } from './platform/presence-publisher.js';
 
 const tracksByTab = new Map();
@@ -11,13 +18,13 @@ let delivery = presencePublisher.status();
 let pushTimer = 0;
 
 chrome.runtime.onInstalled.addListener(async () => {
-  const stored = await chrome.storage.local.get(DEFAULT_SETTINGS);
+  const stored = await chrome.storage.local.get(null);
   await chrome.storage.local.set(normalizeSettings(stored));
-  await chrome.storage.local.remove('bridgeUrl');
+  await chrome.storage.local.remove(['bridgeUrl', ...LEGACY_DETAIL_SETTINGS]);
 });
 
 async function loadSettings() {
-  settings = normalizeSettings(await chrome.storage.local.get(DEFAULT_SETTINGS));
+  settings = normalizeSettings(await chrome.storage.local.get(null));
 }
 
 function currentTrack() {
@@ -37,8 +44,13 @@ function setAction(track) {
 async function publishCurrentActivity() {
   const track = currentTrack();
   setAction(track);
-  const intent = createPresenceIntent(track, Date.now(), settings);
-  delivery = await presencePublisher.publish(intent);
+  const intent = createPresenceIntent(
+    track,
+    Date.now(),
+    presenceDetailsForSource(track?.source, settings),
+  );
+  const applicationId = applicationIdForSource(track?.source, settings);
+  delivery = await presencePublisher.publish(intent, applicationId);
 }
 
 async function connectDiscord() {

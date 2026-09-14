@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, normalizeSettings } from './core/settings.js';
+import { DEFAULT_SETTINGS, normalizeSettings, SERVICE_SETTINGS } from './core/settings.js';
 
 const form = document.getElementById('settings-form');
 const status = document.getElementById('save-status');
@@ -11,21 +11,35 @@ const connectButton = document.getElementById('connect-discord');
 function render(settings) {
   for (const [key, value] of Object.entries(normalizeSettings(settings))) {
     const input = form.elements.namedItem(key);
-    if (input) input.checked = value;
+    if (!input) continue;
+    if (input.type === 'checkbox') input.checked = value;
+    else input.value = value;
   }
 }
 
 function readForm() {
   const settings = {};
-  for (const key of Object.keys(DEFAULT_SETTINGS)) {
-    settings[key] = Boolean(form.elements.namedItem(key)?.checked);
+  for (const [key, fallback] of Object.entries(DEFAULT_SETTINGS)) {
+    const input = form.elements.namedItem(key);
+    settings[key] = typeof fallback === 'boolean' ? Boolean(input?.checked) : String(input?.value || '').trim();
   }
   return settings;
 }
 
 async function load() {
-  render(await chrome.storage.local.get(DEFAULT_SETTINGS));
+  render(await chrome.storage.local.get(null));
   await loadDiscordSetup();
+}
+
+function invalidServiceApplicationId() {
+  for (const service of Object.values(SERVICE_SETTINGS)) {
+    const input = form.elements.namedItem(service.applicationId);
+    const value = input.value.trim();
+    const invalid = Boolean(value) && !/^\d{17,20}$/.test(value);
+    input.setAttribute('aria-invalid', String(invalid));
+    if (invalid) return { input, label: service.label };
+  }
+  return null;
 }
 
 function renderDiscord(result) {
@@ -44,6 +58,11 @@ async function loadDiscordSetup() {
 
 async function save() {
   clearTimeout(saveTimer);
+  const invalid = invalidServiceApplicationId();
+  if (invalid) {
+    status.textContent = `${invalid.label} needs a valid 17–20 digit Discord application ID.`;
+    return;
+  }
   await chrome.storage.local.set(readForm());
   status.textContent = 'Saved.';
   saveTimer = setTimeout(() => {
@@ -51,10 +70,22 @@ async function save() {
   }, 1800);
 }
 
-form.addEventListener('change', () => {
+form.addEventListener('change', (event) => {
+  if (!event.target.name) return;
   save().catch(() => {
     status.textContent = 'Could not save settings. Try again.';
   });
+});
+
+for (const input of document.querySelectorAll('.service-application-id')) {
+  input.addEventListener('input', () => {
+    input.value = input.value.replace(/\D/g, '').slice(0, 20);
+    input.setAttribute('aria-invalid', 'false');
+  });
+}
+
+clientIdInput.addEventListener('input', () => {
+  clientIdInput.value = clientIdInput.value.replace(/\D/g, '').slice(0, 20);
 });
 
 document.getElementById('reset').addEventListener('click', () => {

@@ -9,8 +9,8 @@ export const presencePublisher = Object.freeze({
     return discordPresence.status();
   },
 
-  publish(intent) {
-    return discordPresence.publish(intent);
+  publish(intent, applicationId) {
+    return discordPresence.publish(intent, applicationId);
   },
 
   connect() {

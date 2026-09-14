@@ -22,13 +22,18 @@ it in its popup, and can experimentally publish it directly to Discord.
 5. Open the extension's **Settings** page and copy its OAuth redirect URL.
 6. Create a Discord application, enable **Public Client**, and add that exact
    redirect URL in the application's OAuth2 settings.
-7. Paste the Discord application ID into ChudPresence settings, save it, and
-   choose **Connect Discord**.
-8. Open a supported site and play something, then open the extension popup.
+7. Paste the ChudPresenceSolo OAuth application ID into its Discord connection
+   settings, save it, and choose **Connect Discord**.
+8. Optionally add a separate Discord application ID to each service profile.
+   A blank service ID falls back to the ChudPresenceSolo OAuth application ID.
+9. Open a supported site and play something, then open the extension popup.
 
 Use **Settings** in the popup, or **Details → Extension options** on the browser's
-extensions page, to configure supported sources, paused-media handling, artwork,
-timers, and activity links. Settings are stored locally by the extension.
+extensions page, to configure paused-media handling and a separate profile for
+each supported service. Service profiles contain the activity application ID,
+artwork, timer, and activity-link preferences. The one ChudPresenceSolo OAuth
+application remains responsible for the shared Discord login. Settings are
+stored locally by the extension.
 
 No companion process, localhost port, installer, or Discord desktop client is
 required. Detection and preview continue to work without connecting Discord.

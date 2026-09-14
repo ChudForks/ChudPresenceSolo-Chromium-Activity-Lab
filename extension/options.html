@@ -21,29 +21,7 @@
         <section class="card">
           <div class="section-heading">
             <div>
-              <h2>Experimental Discord connection</h2>
-              <p>Uses OAuth with PKCE and Discord's undocumented Headless Sessions endpoint.</p>
-            </div>
-          </div>
-          <div class="discord-setup">
-            <label for="discord-client-id"><strong>Discord application ID</strong><small>Create a Public Client application in the Discord Developer Portal.</small></label>
-            <input id="discord-client-id" type="text" inputmode="numeric" autocomplete="off" placeholder="123456789012345678" />
-            <label for="discord-redirect"><strong>OAuth redirect URL</strong><small>Add this exact URL to the application's OAuth2 redirects.</small></label>
-            <div class="copy-row">
-              <input id="discord-redirect" type="text" readonly />
-              <button id="copy-redirect" type="button">Copy</button>
-            </div>
-            <div class="connection-row">
-              <button id="save-discord" type="button">Save Discord setup</button>
-              <button id="connect-discord" type="button">Connect Discord</button>
-              <span id="discord-status" role="status" aria-live="polite"></span>
-            </div>
-          </div>
-        </section>
-
-        <section class="card">
-          <div class="section-heading">
-            <div>
+              <p class="section-kicker">General</p>
               <h2>Activity detection</h2>
               <p>Control detection across every supported tab.</p>
             </div>
@@ -57,42 +35,130 @@
             <span><strong>Show paused media</strong><small>Keep the last paused item available as activity.</small></span>
             <input name="showPaused" type="checkbox" />
           </label>
-        </section>
-
-        <section class="card">
-          <div class="section-heading">
-            <div>
-              <h2>Sources</h2>
-              <p>Disabled sources are ignored even if their tabs remain open.</p>
-            </div>
-          </div>
-          <div class="source-grid">
-            <label><input name="sourceYouTube" type="checkbox" /><span>YouTube</span></label>
-            <label><input name="sourceYouTubeMusic" type="checkbox" /><span>YouTube Music</span></label>
-            <label><input name="sourceCrunchyroll" type="checkbox" /><span>Crunchyroll</span></label>
-            <label><input name="sourceMovies67" type="checkbox" /><span>67Movies</span></label>
+          <div class="general-actions">
+            <p id="save-status" role="status" aria-live="polite">Changes save automatically.</p>
+            <button id="reset" type="button">Restore activity defaults</button>
           </div>
         </section>
 
         <section class="card">
           <div class="section-heading">
             <div>
-              <h2>Presence details</h2>
-              <p>These preferences apply at the publisher boundary.</p>
+              <p class="section-kicker">Discord</p>
+              <h2>ChudPresenceSolo account connection</h2>
+              <p>One OAuth application signs ChudPresenceSolo into Discord for every service.</p>
             </div>
           </div>
-          <label class="row">
-            <span><strong>Artwork</strong><small>Include the thumbnail or cover supplied by the site.</small></span>
-            <input name="showArtwork" type="checkbox" />
-          </label>
-          <label class="row">
-            <span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps while playing.</small></span>
-            <input name="showTimestamps" type="checkbox" />
-          </label>
-          <label class="row">
-            <span><strong>Watch and listen links</strong><small>Include up to two HTTPS activity links.</small></span>
-            <input name="showButtons" type="checkbox" />
-          </label>
+          <div class="discord-setup">
+            <label for="discord-client-id"><strong>ChudPresenceSolo OAuth application ID</strong><small>Create one Public Client application in the Discord Developer Portal. This ID is used only for account authorization and as a fallback when a service ID is blank.</small></label>
+            <input id="discord-client-id" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+            <label for="discord-redirect"><strong>OAuth redirect URL</strong><small>Add this exact URL to the ChudPresenceSolo application's OAuth2 redirects.</small></label>
+            <div class="copy-row">
+              <input id="discord-redirect" type="text" readonly />
+              <button id="copy-redirect" type="button">Copy</button>
+            </div>
+            <div class="connection-row">
+              <button id="save-discord" type="button">Save connection setup</button>
+              <button id="connect-discord" type="button">Connect Discord</button>
+              <span id="discord-status" role="status" aria-live="polite"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card service-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Service</p>
+              <h2>YouTube</h2>
+              <p>Configure the Discord activity created for YouTube videos, Shorts, and live streams.</p>
+            </div>
+            <label class="switch">
+              <input name="sourceYouTube" type="checkbox" />
+              <span aria-hidden="true"></span>
+              <strong>Enabled</strong>
+            </label>
+          </div>
+          <div class="service-setup">
+            <label><strong>Discord application ID</strong><small>Identifies the YouTube activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
+              <input class="service-application-id" name="youtubeApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+            </label>
+          </div>
+          <div class="detail-heading"><strong>Presence details</strong><small>Choose what YouTube sends to Discord.</small></div>
+          <label class="row"><span><strong>Artwork</strong><small>Include the video thumbnail.</small></span><input name="youtubeShowArtwork" type="checkbox" /></label>
+          <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="youtubeShowTimestamps" type="checkbox" /></label>
+          <label class="row"><span><strong>Watch links</strong><small>Include up to two HTTPS activity links.</small></span><input name="youtubeShowButtons" type="checkbox" /></label>
+        </section>
+
+        <section class="card service-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Service</p>
+              <h2>YouTube Music</h2>
+              <p>Configure the Discord activity created for music playback.</p>
+            </div>
+            <label class="switch">
+              <input name="sourceYouTubeMusic" type="checkbox" />
+              <span aria-hidden="true"></span>
+              <strong>Enabled</strong>
+            </label>
+          </div>
+          <div class="service-setup">
+            <label><strong>Discord application ID</strong><small>Identifies the YouTube Music activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
+              <input class="service-application-id" name="youtubeMusicApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+            </label>
+          </div>
+          <div class="detail-heading"><strong>Presence details</strong><small>Choose what YouTube Music sends to Discord.</small></div>
+          <label class="row"><span><strong>Artwork</strong><small>Include the album or track artwork.</small></span><input name="youtubeMusicShowArtwork" type="checkbox" /></label>
+          <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="youtubeMusicShowTimestamps" type="checkbox" /></label>
+          <label class="row"><span><strong>Listen links</strong><small>Include up to two HTTPS activity links.</small></span><input name="youtubeMusicShowButtons" type="checkbox" /></label>
+        </section>
+
+        <section class="card service-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Service</p>
+              <h2>Crunchyroll</h2>
+              <p>Configure the Discord activity created for anime playback.</p>
+            </div>
+            <label class="switch">
+              <input name="sourceCrunchyroll" type="checkbox" />
+              <span aria-hidden="true"></span>
+              <strong>Enabled</strong>
+            </label>
+          </div>
+          <div class="service-setup">
+            <label><strong>Discord application ID</strong><small>Identifies the Crunchyroll activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
+              <input class="service-application-id" name="crunchyrollApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+            </label>
+          </div>
+          <div class="detail-heading"><strong>Presence details</strong><small>Choose what Crunchyroll sends to Discord.</small></div>
+          <label class="row"><span><strong>Artwork</strong><small>Include the episode or series cover.</small></span><input name="crunchyrollShowArtwork" type="checkbox" /></label>
+          <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="crunchyrollShowTimestamps" type="checkbox" /></label>
+          <label class="row"><span><strong>Watch links</strong><small>Include up to two HTTPS activity links.</small></span><input name="crunchyrollShowButtons" type="checkbox" /></label>
+        </section>
+
+        <section class="card service-card">
+          <div class="section-heading">
+            <div>
+              <p class="section-kicker">Service</p>
+              <h2>67Movies</h2>
+              <p>Configure the Discord activity created for movie and episode playback.</p>
+            </div>
+            <label class="switch">
+              <input name="sourceMovies67" type="checkbox" />
+              <span aria-hidden="true"></span>
+              <strong>Enabled</strong>
+            </label>
+          </div>
+          <div class="service-setup">
+            <label><strong>Discord application ID</strong><small>Identifies the 67Movies activity. Leave blank to use the ChudPresenceSolo OAuth application ID.</small>
+              <input class="service-application-id" name="movies67ApplicationId" type="text" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="123456789012345678" />
+            </label>
+          </div>
+          <div class="detail-heading"><strong>Presence details</strong><small>Choose what 67Movies sends to Discord.</small></div>
+          <label class="row"><span><strong>Artwork</strong><small>Include the movie or series cover.</small></span><input name="movies67ShowArtwork" type="checkbox" /></label>
+          <label class="row"><span><strong>Playback timer</strong><small>Include elapsed and remaining timestamps.</small></span><input name="movies67ShowTimestamps" type="checkbox" /></label>
+          <label class="row"><span><strong>Watch links</strong><small>Include up to two HTTPS activity links.</small></span><input name="movies67ShowButtons" type="checkbox" /></label>
         </section>
 
         <aside class="notice">
@@ -100,10 +166,6 @@
           <div><strong>Experimental transport</strong><p>Headless Sessions is not part of Discord's documented public API and may change or stop working without notice. Discord's required <code>sdk.social_layer_presence</code> scope is broader than activity writing. OAuth tokens remain in extension storage and are never exposed to supported sites.</p></div>
         </aside>
 
-        <div class="actions">
-          <p id="save-status" role="status" aria-live="polite">Changes save automatically.</p>
-          <button id="reset" type="button">Restore defaults</button>
-        </div>
       </form>
     </main>
     <script type="module" src="options.js"></script>
