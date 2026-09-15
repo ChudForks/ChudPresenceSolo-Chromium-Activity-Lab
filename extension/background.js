@@ -1,4 +1,5 @@
 import { selectActivity } from './core/activity.js';
+import { ActivityRegistry } from './core/activity-registry.js';
 import { createPresenceIntent } from './core/presence.js';
 import {
   applicationIdForSource,
@@ -12,8 +13,7 @@ import {
 import { presencePublisher } from './platform/presence-publisher.js';
 import { EXTENSION_NAME } from './core/branding.js';
 
-const tracksByTab = new Map();
-const closedTabIds = new Set();
+const activityRegistry = new ActivityRegistry();
 let activeTabId = null;
 let settings = { ...DEFAULT_SETTINGS };
 let delivery = presencePublisher.status();
@@ -36,7 +36,7 @@ async function loadSettings() {
 
 function currentTrack() {
   const eligible = new Map(
-    [...tracksByTab].filter(([, track]) => isTrackAllowed(track, settings)),
+    [...activityRegistry.tracks()].filter(([, track]) => isTrackAllowed(track, settings)),
   );
   const selected = selectActivity(eligible, activeTabId);
   activeTabId = selected.tabId;
@@ -79,17 +79,15 @@ function schedulePublish() {
   }, 250);
 }
 
-function dropTab(tabId) {
-  closedTabIds.add(tabId);
-  tracksByTab.delete(tabId);
+function clearActiveTab(tabId) {
   if (activeTabId === tabId) activeTabId = null;
-  setTimeout(() => closedTabIds.delete(tabId), 15_000);
 }
 
 function pingRemaining() {
-  for (const tabId of tracksByTab.keys()) {
+  for (const tabId of activityRegistry.tracks().keys()) {
     chrome.tabs.sendMessage(tabId, { type: 'FORCE_TICK' }).catch(() => {
-      dropTab(tabId);
+      activityRegistry.clearTab(tabId);
+      clearActiveTab(tabId);
       schedulePublish();
     });
   }
@@ -97,9 +95,18 @@ function pingRemaining() {
 
 function onTabGone(tabId) {
   if (typeof tabId !== 'number') return;
-  const known = tracksByTab.has(tabId);
-  dropTab(tabId);
+  const known = activityRegistry.clearTab(tabId);
+  clearActiveTab(tabId);
   if (!known) return;
+  pingRemaining();
+  publishCurrentActivity();
+}
+
+function onDocumentGone(tabId, documentId) {
+  if (typeof tabId !== 'number') return;
+  const known = activityRegistry.clearDocument(tabId, documentId);
+  if (!known) return;
+  clearActiveTab(tabId);
   pingRemaining();
   publishCurrentActivity();
 }
@@ -118,29 +125,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message?.type === 'TRACK_UPDATE') {
     const tabId = sender.tab?.id;
-    if (typeof tabId === 'number' && !closedTabIds.has(tabId)) {
-      tracksByTab.set(tabId, message.track || { idle: true });
-    }
+    activityRegistry.update(tabId, sender.documentId, message.track);
     schedulePublish();
     sendResponse({ ok: true });
     return false;
   }
 
   if (message?.type === 'TAB_CLOSING') {
-    onTabGone(sender.tab?.id);
+    onDocumentGone(sender.tab?.id, sender.documentId);
     sendResponse({ ok: true });
     return false;
   }
 
   if (message?.type === 'HEARTBEAT') {
     const tabId = sender.tab?.id;
-    if (typeof tabId === 'number' && closedTabIds.has(tabId)) {
-      sendResponse({ ok: true });
-      return false;
-    }
-    if (typeof tabId === 'number' && !tracksByTab.has(tabId)) {
-      tracksByTab.set(tabId, { idle: true });
-    }
+    activityRegistry.heartbeat(tabId, sender.documentId);
     schedulePublish();
     sendResponse({ ok: true });
     return false;
@@ -188,11 +187,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'presence') return;
   const tabId = port.sender?.tab?.id;
+  const documentId = port.sender?.documentId;
   port.onDisconnect.addListener(() => {
     if (typeof tabId !== 'number') return;
     chrome.tabs.get(tabId)
       .then((tab) => {
         if (!tab || tab.discarded) onTabGone(tabId);
+        else onDocumentGone(tabId, documentId);
       })
       .catch(() => onTabGone(tabId));
   });
@@ -201,7 +202,16 @@ chrome.runtime.onConnect.addListener((port) => {
 chrome.tabs.onRemoved.addListener(onTabGone);
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-  if (changeInfo.discarded === true) onTabGone(tabId);
+  if (changeInfo.discarded === true) {
+    onTabGone(tabId);
+    return;
+  }
+
+  // Navigation keeps the tab ID. Clear the old document's activity immediately
+  // so the next supported site's first report can replace it without a timeout.
+  if (changeInfo.status === 'loading' || typeof changeInfo.url === 'string') {
+    onTabGone(tabId);
+  }
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
