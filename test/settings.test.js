@@ -42,7 +42,7 @@ test('migrates legacy global presence preferences to every service', () => {
     showButtons: false,
   });
 
-  for (const prefix of ['youtube', 'youtubeMusic', 'crunchyroll', 'movies67']) {
+  for (const prefix of ['youtube', 'youtubeMusic', 'crunchyroll', 'movies67', 'twitch']) {
     assert.equal(normalized[`${prefix}ShowPaused`], false);
     assert.equal(normalized[`${prefix}ShowArtwork`], false);
     assert.equal(normalized[`${prefix}ShowTimestamps`], true);
@@ -59,6 +59,7 @@ test('uses presence details and hard-coded application IDs for the active servic
 
   assert.equal(applicationIdForSource('youtube', settings), SERVICE_APPLICATION_IDS.youtube);
   assert.equal(applicationIdForSource('crunchyroll', settings), SERVICE_APPLICATION_IDS.crunchyroll);
+  assert.equal(applicationIdForSource('twitch', settings), SERVICE_APPLICATION_IDS.twitch);
   assert.deepEqual(presenceDetailsForSource('youtube', settings), {
     statusDisplay: 'app',
     showArtwork: false,
@@ -79,10 +80,12 @@ test('normalizes and selects each service status display preference', () => {
     youtubeMusicStatusDisplay: 'track',
     crunchyrollStatusDisplay: 'episode',
     movies67StatusDisplay: 'invalid',
+    twitchStatusDisplay: 'streamer',
   });
 
   assert.equal(presenceDetailsForSource('youtube', settings).statusDisplay, 'creator');
   assert.equal(presenceDetailsForSource('youtubeMusic', settings).statusDisplay, 'track');
   assert.equal(presenceDetailsForSource('crunchyroll', settings).statusDisplay, 'episode');
   assert.equal(presenceDetailsForSource('movies67', settings).statusDisplay, 'app');
+  assert.equal(presenceDetailsForSource('twitch', settings).statusDisplay, 'streamer');
 });

@@ -41,6 +41,16 @@ export const SERVICE_SETTINGS = Object.freeze({
     timestamps: 'movies67ShowTimestamps',
     buttons: 'movies67ShowButtons',
   }),
+  twitch: Object.freeze({
+    label: 'Twitch',
+    enabled: 'sourceTwitch',
+    paused: 'twitchShowPaused',
+    status: 'twitchStatusDisplay',
+    statusValues: Object.freeze(['app', 'streamer', 'stream']),
+    artwork: 'twitchShowArtwork',
+    timestamps: 'twitchShowTimestamps',
+    buttons: 'twitchShowButtons',
+  }),
 });
 
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -69,6 +79,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
   movies67ShowArtwork: true,
   movies67ShowTimestamps: true,
   movies67ShowButtons: true,
+  sourceTwitch: true,
+  twitchShowPaused: true,
+  twitchStatusDisplay: 'app',
+  twitchShowArtwork: true,
+  twitchShowTimestamps: true,
+  twitchShowButtons: true,
 });
 
 export const LEGACY_DETAIL_SETTINGS = Object.freeze([
@@ -83,6 +99,7 @@ export const LEGACY_APPLICATION_ID_SETTINGS = Object.freeze([
   'youtubeMusicApplicationId',
   'crunchyrollApplicationId',
   'movies67ApplicationId',
+  'twitchApplicationId',
 ]);
 
 export function normalizeSettings(value = {}) {

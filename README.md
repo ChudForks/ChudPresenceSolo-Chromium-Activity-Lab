@@ -1,7 +1,7 @@
 # ChudPresence Solo
 
 ChudPresence Solo is an extension-only foundation for detecting playback on YouTube,
-YouTube Music, Crunchyroll, and 67Movies.
+YouTube Music, Crunchyroll, 67Movies, and Twitch.
 
 The old Node.js companion, localhost bridge, system tray app, Windows installer,
 and bundled runtime have been removed. The extension detects activity, displays
@@ -49,6 +49,8 @@ page before connecting Discord.
   on the artwork tooltip. Movies use their own title and **Watch movie** layout.
 - **67Movies:** TMDB series/movie artwork and metadata. Episodes show series plus
   episode title; movies use their own title and **Watch movie** layout.
+- **Twitch:** stream title, streamer, stream artwork, an elapsed timer for live
+  broadcasts, **Watch on Twitch**, and **Visit channel**.
 
 Paused activities remain visible and receive a Paused marker by default. Every
 service can independently disable that behavior and choose whether Discord's
@@ -80,6 +82,7 @@ rewrite sequence.
 - YouTube and YouTube Music
 - Crunchyroll
 - 67Movies
+- Twitch
 
 The manifest only requests `storage` permission. Content scripts run only on the
 documented supported domains. There are no localhost host permissions and no

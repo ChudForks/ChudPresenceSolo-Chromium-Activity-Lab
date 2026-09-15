@@ -8,4 +8,5 @@ export const SERVICE_APPLICATION_IDS = Object.freeze({
   youtubeMusic: DISCORD_CLIENT_ID,
   crunchyroll: DISCORD_CLIENT_ID,
   movies67: DISCORD_CLIENT_ID,
+  twitch: DISCORD_CLIENT_ID,
 });

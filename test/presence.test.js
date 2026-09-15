@@ -160,6 +160,29 @@ test('uses dedicated 67Movies episode and movie layouts', () => {
   ]);
 });
 
+test('uses a dedicated Twitch stream layout', () => {
+  const live = createPresenceIntent({
+    source: 'twitch',
+    kind: 'live',
+    live: true,
+    title: 'Ranked with friends',
+    artist: 'Streamer',
+    artwork: 'https://static-cdn.jtvnw.net/preview.jpg',
+    url: 'https://www.twitch.tv/streamer',
+    channelUrl: 'https://www.twitch.tv/streamer',
+    playing: true,
+    position: 75,
+  }, 1_000_000, { statusDisplay: 'streamer' });
+
+  assert.equal(live.name, 'Twitch');
+  assert.equal(live.state, 'Streamer • Live');
+  assert.equal(live.statusDisplayType, 'state');
+  assert.deepEqual(live.timestamps, { start: 925 });
+  assert.deepEqual(live.buttons, [
+    { label: 'Watch on Twitch', url: 'https://www.twitch.tv/streamer' },
+  ]);
+});
+
 test('does not create presence for idle, ad, or untitled tracks', () => {
   assert.equal(createPresenceIntent(null), null);
   assert.equal(createPresenceIntent({ idle: true, title: 'Idle' }), null);
