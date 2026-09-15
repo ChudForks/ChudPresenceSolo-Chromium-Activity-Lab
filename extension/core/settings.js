@@ -51,6 +51,16 @@ export const SERVICE_SETTINGS = Object.freeze({
     timestamps: 'twitchShowTimestamps',
     buttons: 'twitchShowButtons',
   }),
+  kick: Object.freeze({
+    label: 'Kick',
+    enabled: 'sourceKick',
+    paused: 'kickShowPaused',
+    status: 'kickStatusDisplay',
+    statusValues: Object.freeze(['app', 'streamer', 'stream']),
+    artwork: 'kickShowArtwork',
+    timestamps: 'kickShowTimestamps',
+    buttons: 'kickShowButtons',
+  }),
 });
 
 export const DEFAULT_SETTINGS = Object.freeze({
@@ -85,6 +95,12 @@ export const DEFAULT_SETTINGS = Object.freeze({
   twitchShowArtwork: true,
   twitchShowTimestamps: true,
   twitchShowButtons: true,
+  sourceKick: true,
+  kickShowPaused: true,
+  kickStatusDisplay: 'app',
+  kickShowArtwork: true,
+  kickShowTimestamps: true,
+  kickShowButtons: true,
 });
 
 export const LEGACY_DETAIL_SETTINGS = Object.freeze([
@@ -100,6 +116,7 @@ export const LEGACY_APPLICATION_ID_SETTINGS = Object.freeze([
   'crunchyrollApplicationId',
   'movies67ApplicationId',
   'twitchApplicationId',
+  'kickApplicationId',
 ]);
 
 export function normalizeSettings(value = {}) {

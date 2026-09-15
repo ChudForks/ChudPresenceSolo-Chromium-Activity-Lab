@@ -183,6 +183,30 @@ test('uses a dedicated Twitch stream layout', () => {
   ]);
 });
 
+test('uses a dedicated Kick stream layout', () => {
+  const vod = createPresenceIntent({
+    source: 'kick',
+    kind: 'video',
+    title: 'A past broadcast',
+    artist: 'Streamer',
+    artwork: 'https://images.kick.com/video.jpg',
+    url: 'https://kick.com/streamer/videos/01234567-89ab-cdef-0123-456789abcdef',
+    channelUrl: 'https://kick.com/streamer',
+    playing: true,
+    position: 40,
+    duration: 120,
+  }, 1_000_000, { statusDisplay: 'stream' });
+
+  assert.equal(vod.name, 'Kick');
+  assert.equal(vod.details, 'A past broadcast');
+  assert.equal(vod.state, 'Streamer');
+  assert.equal(vod.statusDisplayType, 'details');
+  assert.deepEqual(vod.buttons, [
+    { label: 'Watch on Kick', url: 'https://kick.com/streamer/videos/01234567-89ab-cdef-0123-456789abcdef' },
+    { label: 'Visit channel', url: 'https://kick.com/streamer' },
+  ]);
+});
+
 test('does not create presence for idle, ad, or untitled tracks', () => {
   assert.equal(createPresenceIntent(null), null);
   assert.equal(createPresenceIntent({ idle: true, title: 'Idle' }), null);

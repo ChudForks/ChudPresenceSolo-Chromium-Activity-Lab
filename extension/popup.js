@@ -26,6 +26,11 @@ const serviceUi = Object.freeze({
     description: 'Live streams and videos on demand',
     statuses: [['app', 'Twitch'], ['streamer', 'Streamer'], ['stream', 'Stream title']],
   },
+  kick: {
+    icon: 'assets/services/kick.svg',
+    description: 'Live streams and videos on demand',
+    statuses: [['app', 'Kick'], ['streamer', 'Streamer'], ['stream', 'Stream title']],
+  },
 });
 
 const activityView = document.getElementById('activity-view');
@@ -63,6 +68,7 @@ function sourceName(track) {
   }
   if (track?.source === 'youtubeMusic') return 'YouTube Music';
   if (track?.source === 'twitch') return track.live || track.kind === 'live' ? 'Twitch Live' : 'Twitch';
+  if (track?.source === 'kick') return track.live || track.kind === 'live' ? 'Kick Live' : 'Kick';
   return 'Playback';
 }
 

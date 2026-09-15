@@ -6,6 +6,7 @@ const SOURCE_LABELS = Object.freeze({
   crunchyroll: 'Crunchyroll',
   movies67: '67Movies',
   twitch: 'Twitch',
+  kick: 'Kick',
   youtube: 'YouTube',
   youtubeMusic: 'YouTube Music',
 });
@@ -167,6 +168,25 @@ function layoutFor(track) {
       largeText: cleanText(track.title || provider),
       buttons: [
         activityUrl && { label: 'Watch on Twitch', url: activityUrl },
+        channelUrl && channelUrl !== activityUrl && { label: 'Visit channel', url: channelUrl },
+      ],
+      statusFields: { app: 'name', streamer: 'state', stream: 'details' },
+    };
+  }
+
+  if (track.source === 'kick') {
+    const streamer = cleanText(track.artist || provider);
+    const live = track.live || track.kind === 'live';
+    return {
+      details: cleanText(track.title),
+      state: withMarkers(
+        streamer,
+        [live && 'Live', !track.playing && 'Paused'].filter(Boolean),
+        provider,
+      ),
+      largeText: cleanText(track.title || provider),
+      buttons: [
+        activityUrl && { label: 'Watch on Kick', url: activityUrl },
         channelUrl && channelUrl !== activityUrl && { label: 'Visit channel', url: channelUrl },
       ],
       statusFields: { app: 'name', streamer: 'state', stream: 'details' },

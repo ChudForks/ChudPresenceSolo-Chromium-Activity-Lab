@@ -9,7 +9,7 @@ The project follows the shape of the proposed PreMiD-style pipeline while
 keeping detection separate from Discord delivery:
 
 ```text
-YouTube / YouTube Music / Crunchyroll / 67Movies / Twitch
+YouTube / YouTube Music / Crunchyroll / 67Movies / Twitch / Kick
                          |
                          v
               provider content scripts
@@ -70,7 +70,7 @@ the bot's presence, not the authenticated user's presence.
 
 ## Module ownership
 
-- `extension/content.js`, `youtube.js`, `crunchyroll.js`, `movies67.js`, and `twitch.js` are
+- `extension/content.js`, `youtube.js`, `crunchyroll.js`, `movies67.js`, `twitch.js`, and `kick.js` are
   provider adapters. They observe a page and emit normalized tracks.
 - `extension/core/activity.js` selects one reportable track across browser tabs.
 - `extension/core/presence.js` converts that track to a transport-neutral,

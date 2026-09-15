@@ -9,4 +9,5 @@ export const SERVICE_APPLICATION_IDS = Object.freeze({
   crunchyroll: DISCORD_CLIENT_ID,
   movies67: DISCORD_CLIENT_ID,
   twitch: DISCORD_CLIENT_ID,
+  kick: DISCORD_CLIENT_ID,
 });

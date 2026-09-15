@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChudPresence Solo",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Share playback activity from supported streaming sites on Discord.",
   "icons": {
     "16": "icons/icon16.png",
@@ -72,6 +72,11 @@
     {
       "matches": ["https://www.twitch.tv/*", "https://twitch.tv/*"],
       "js": ["twitch.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://kick.com/*", "https://www.kick.com/*"],
+      "js": ["kick.js"],
       "run_at": "document_idle"
     }
   ],
