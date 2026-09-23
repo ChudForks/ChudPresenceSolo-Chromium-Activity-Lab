@@ -180,7 +180,7 @@ async function updateSession(intent, applicationId, force = false) {
   return setStatus('active', `Sharing activity as ${getAuthState().user?.username || 'your Discord account'}.`, true);
 }
 
-async function clearSession() {
+async function clearSession({ keepalive = false } = {}) {
   clearPendingRetry();
   if (!sessionToken && !lastIntent && !lastActivityIdentity) {
     await disarmShutdownCleanup().catch(() => {});
@@ -197,6 +197,10 @@ async function clearSession() {
   if (token && getAuthState().authenticated) {
     await discordRequest('/users/@me/headless-sessions/delete', {
       method: 'POST',
+      // Firefox 133+ can keep this authenticated request alive after the last
+      // source document starts closing. It is deliberately limited to cleanup:
+      // normal presence writes should not outlive their initiating context.
+      keepalive,
       body: JSON.stringify({ token }),
     }).catch(() => {});
   }
@@ -254,10 +258,12 @@ export const discordPresence = Object.freeze({
     return refreshIdleStatus();
   },
 
-  async publish(intent, applicationId = '') {
+  async publish(intent, applicationId = '', { closing = false } = {}) {
     await this.initialize();
     try {
-      return await enqueue(() => (intent ? updateSession(intent, applicationId) : clearSession()));
+      return await enqueue(() => (
+        intent ? updateSession(intent, applicationId) : clearSession({ keepalive: closing })
+      ));
     } catch (error) {
       return intent
         ? handleDeliveryError(error, intent, applicationId)
@@ -275,7 +281,7 @@ export const discordPresence = Object.freeze({
     }
   },
 
-  getSetup() {
-    return { clientId: getClientId(), redirectUrl: getRedirectUrl(), ...getAuthState() };
+  async getSetup() {
+    return { clientId: getClientId(), redirectUrl: await getRedirectUrl(), ...getAuthState() };
   },
 });

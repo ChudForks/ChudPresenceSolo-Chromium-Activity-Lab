@@ -1,93 +1,34 @@
-# ChudPresence Solo
+# ChudPresence Chromium Activity Lab
 
-ChudPresence Solo is an extension-only foundation for detecting playback on YouTube,
-YouTube Music, Crunchyroll, 67Movies, Twitch, and Kick.
+This is a separate Manifest V3 Chromium development extension for Activity API V1. It is not the original ChudPresence Solo Chrome release. The Activity Library packages are maintained separately and are not included in this repository.
 
-The old Node.js companion, localhost bridge, system tray app, Windows installer,
-and bundled runtime have been removed. The extension detects activity, displays
-it in its popup, and can experimentally publish it directly to Discord.
+The Activity Library installs the V1 Crunchyroll and YouTube Music packages from the official catalog or local files. Packaged Crunchyroll and YouTube Music reporters are disabled in this lab so they cannot compete with those Activities. The existing packaged YouTube, 67Movies, Twitch, and Kick adapters remain available for comparison. Playback detection and the popup's local presence intent can be tested without connecting Discord.
 
-> Discord does not document Headless Sessions as a supported public API. This
-> extension-only transport may change or stop working without notice. It uses
-> Discord OAuth with PKCE and never asks for a Discord account token. Discord's
-> required `sdk.social_layer_presence` scope authorizes more Social SDK features
-> than this extension uses; ChudPresence Solo only calls user info and presence routes.
+## Run locally
 
-## Load the extension
+1. Use Chrome or another Chromium browser version 135 or newer. In `chrome://extensions`, enable **Developer mode** and select **Load unpacked**.
+2. Select this repository's `extension/` directory, then open its **Activity Library** from the popup.
+3. On Chrome 138 or newer, open the lab extension's details page and enable **Allow User Scripts**. The Library reports when the API is unavailable.
+4. Install Crunchyroll or YouTube Music from Discover, or enable Developer mode in the Library and load a local `metadata.json` and `activity.js` from `ChudPresence-Activities/activities/`. Chromium asks for the Activity's declared website origins when installed.
+5. Play media and inspect the Library's report, clear, frame, permission, and local presence diagnostics. The popup also shows the selected local presence intent.
 
-1. Open `chrome://extensions` (or the equivalent page in Edge or Brave).
-2. Enable **Developer mode**.
-3. Choose **Load unpacked**.
-4. Select the `extension` directory.
-5. In the Discord Developer Portal, ensure the built-in OAuth application's
-   OAuth2 redirect list contains
-   `https://lgnhpmldmgjclkkjajcaehlcggbconka.chromiumapp.org/discord` and that
-   **Public Client** is enabled.
-6. Open the extension panel, choose the gear, and select **Connect** under Discord.
-7. Open a supported site and play something, then open the extension popup.
+The lab's unpacked extension ID is determined by Chromium. If you later test Discord publishing, copy the callback shown in Settings and register that exact callback for client ID `1549066134706323548` in the Discord Developer Portal, with **Public Client** enabled. The original release's fixed callback does not apply to this lab. Discord's Headless Sessions transport is experimental and is outside the first playback detection gate.
 
-Use the gear inside the extension panel to configure a separate profile for each
-supported service without leaving the popup.
-Service profiles contain sharing, paused-media, member-list status text, artwork,
-timer, and Discord profile-button preferences. The OAuth application ID, service
-application IDs, and OAuth redirect URI are fixed in
-`extension/config.js`; users cannot override them from Settings. Other settings
-are stored locally by the extension.
+## Development gates
 
-The fixed redirect URI requires the extension to run with the ID
-`lgnhpmldmgjclkkjajcaehlcggbconka`; verify that ID in the browser's extension
-page before connecting Discord.
-
-## Discord layouts
-
-- **YouTube Music:** song title, artist, album artwork tooltip, playback progress,
-  **Play on YouTube Music**, and **Search artist**.
-- **YouTube:** video title, channel, thumbnail, playback progress, **Watch on
-  YouTube**, and **View channel**. Live streams use an elapsed timer and Live
-  marker; Shorts use **Watch Short**.
-- **Crunchyroll:** series plus season/episode information, with the episode title
-  on the artwork tooltip. Movies use their own title and **Watch movie** layout.
-- **67Movies:** TMDB series/movie artwork and metadata. Episodes show series plus
-  episode title; movies use their own title and **Watch movie** layout.
-- **Twitch:** stream title, streamer, stream artwork, an elapsed timer for live
-  broadcasts, **Watch on Twitch**, and **Visit channel**.
-- **Kick:** stream title, streamer, stream artwork, an elapsed timer for live
-  broadcasts, **Watch on Kick**, and **Visit channel**.
-
-Paused activities remain visible and receive a Paused marker by default. Every
-service can independently disable that behavior and choose whether Discord's
-member list shows the application name, primary title, or secondary status.
-
-No companion process, localhost port, installer, or Discord desktop client is
-required. Detection and preview continue to work without connecting Discord.
-
-## Development
-
-Requirements: Node.js 18 or newer for checks, tests, and packaging. The unpacked
-extension itself has no Node.js runtime dependency and no third-party packages.
+Requirements: Node.js 20 or newer for the extension checks and the local Activity package copy.
 
 ```bash
 npm run check
 npm test
 npm run build
+cd ChudPresence-Activities
+npm ci
+npm test
+npm run typecheck
+npm run check:catalog
 ```
 
-`npm run build` replaces `dist/` with an extension directory and installable zip.
-Day-to-day development has no compilation step: edit `extension/` and reload it
-from the browser's extensions page.
+`npm run build` writes a local unpacked build and zip under `dist/`. Load `extension/` directly while debugging. The original 1.8.0 Chromium build is retained locally under `baseline/`; both directories are ignored by Git. The separate `ChudPresence-Activities/` checkout is also local and ignored by this repository. `npm run check` verifies the Activity contract copies and local catalog hashes when that checkout is present. It never publishes a package.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for module boundaries and the recommended
-rewrite sequence.
-
-## Supported sites and privacy
-
-- YouTube and YouTube Music
-- Crunchyroll
-- 67Movies
-- Twitch
-- Kick
-
-The manifest only requests `storage` permission. Content scripts run only on the
-documented supported domains. There are no localhost host permissions and no
-companion process. Some site adapters may use public page metadata and artwork
-URLs exposed by the site they run on.
+Activity API V1 is a trusted first-party API. See [the Activity API guide](extension/ACTIVITY_API.md), [the browser verification record](TESTING.md), [the porting plan](PORTING_PLAN.md), and [privacy details](PRIVACY.md).

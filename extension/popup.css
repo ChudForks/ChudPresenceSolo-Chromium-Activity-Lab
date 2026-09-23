@@ -110,6 +110,16 @@ body[data-enabled="false"] .status-dot { background: #6f7484; box-shadow: none; 
 .connection-dot.on { background: var(--green); box-shadow: 0 0 7px rgba(87,214,160,.55); }
 
 .services-section { margin-top: 15px; }
+.local-diagnostics { display: grid; gap: 7px; margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(16,19,32,.72); }
+.library-link { color: #b5bcff; font-size: 10px; font-weight: 650; text-decoration: none; }
+.library-link:hover { color: #e0e3ff; }
+.library-link span { float: right; color: #747b90; }
+.local-diagnostics details { border-top: 1px solid rgba(255,255,255,.06); padding-top: 6px; }
+.local-diagnostics summary { color: #9ca4bc; font-size: 9px; cursor: pointer; }
+.local-diagnostics dl { display: grid; gap: 5px; margin: 8px 0 0; }
+.local-diagnostics dl div { display: grid; grid-template-columns: 94px minmax(0, 1fr); gap: 8px; }
+.local-diagnostics dt { color: #71798e; font-size: 8px; }
+.local-diagnostics dd { overflow: hidden; margin: 0; color: #b8bfd3; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .section-heading { display: flex; align-items: flex-end; justify-content: space-between; margin: 0 2px 9px; }
 .section-heading h2 { margin: 1px 0 0; font-size: 13px; font-weight: 650; letter-spacing: -.2px; }
 .text-button { padding: 4px 1px; border: 0; color: #9ba8ff; background: transparent; font-size: 9.5px; font-weight: 650; cursor: pointer; }

@@ -1,1 +1,1 @@
-export const EXTENSION_NAME = 'ChudPresence Solo';
+export const EXTENSION_NAME = 'ChudPresence Chromium Activity Lab';

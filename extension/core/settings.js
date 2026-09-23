@@ -1,4 +1,5 @@
-import { SERVICE_APPLICATION_IDS } from '../config.js';
+import { normalizeActivityPreferences } from './activity-settings.js';
+import { DISCORD_CLIENT_ID } from '../config.js';
 
 export const SERVICE_SETTINGS = Object.freeze({
   youtube: Object.freeze({
@@ -10,26 +11,6 @@ export const SERVICE_SETTINGS = Object.freeze({
     artwork: 'youtubeShowArtwork',
     timestamps: 'youtubeShowTimestamps',
     buttons: 'youtubeShowButtons',
-  }),
-  youtubeMusic: Object.freeze({
-    label: 'YouTube Music',
-    enabled: 'sourceYouTubeMusic',
-    paused: 'youtubeMusicShowPaused',
-    status: 'youtubeMusicStatusDisplay',
-    statusValues: Object.freeze(['app', 'artist', 'track']),
-    artwork: 'youtubeMusicShowArtwork',
-    timestamps: 'youtubeMusicShowTimestamps',
-    buttons: 'youtubeMusicShowButtons',
-  }),
-  crunchyroll: Object.freeze({
-    label: 'Crunchyroll',
-    enabled: 'sourceCrunchyroll',
-    paused: 'crunchyrollShowPaused',
-    status: 'crunchyrollStatusDisplay',
-    statusValues: Object.freeze(['app', 'series', 'episode']),
-    artwork: 'crunchyrollShowArtwork',
-    timestamps: 'crunchyrollShowTimestamps',
-    buttons: 'crunchyrollShowButtons',
   }),
   movies67: Object.freeze({
     label: '67Movies',
@@ -71,18 +52,6 @@ export const DEFAULT_SETTINGS = Object.freeze({
   youtubeShowArtwork: true,
   youtubeShowTimestamps: true,
   youtubeShowButtons: true,
-  sourceYouTubeMusic: true,
-  youtubeMusicShowPaused: true,
-  youtubeMusicStatusDisplay: 'app',
-  youtubeMusicShowArtwork: true,
-  youtubeMusicShowTimestamps: true,
-  youtubeMusicShowButtons: true,
-  sourceCrunchyroll: true,
-  crunchyrollShowPaused: true,
-  crunchyrollStatusDisplay: 'app',
-  crunchyrollShowArtwork: true,
-  crunchyrollShowTimestamps: true,
-  crunchyrollShowButtons: true,
   sourceMovies67: true,
   movies67ShowPaused: true,
   movies67StatusDisplay: 'app',
@@ -112,8 +81,6 @@ export const LEGACY_DETAIL_SETTINGS = Object.freeze([
 
 export const LEGACY_APPLICATION_ID_SETTINGS = Object.freeze([
   'youtubeApplicationId',
-  'youtubeMusicApplicationId',
-  'crunchyrollApplicationId',
   'movies67ApplicationId',
   'twitchApplicationId',
   'kickApplicationId',
@@ -149,28 +116,54 @@ export function normalizeSettings(value = {}) {
   return normalized;
 }
 
-export function presenceDetailsForSource(source, settings = DEFAULT_SETTINGS) {
-  const service = SERVICE_SETTINGS[source];
-  if (!service) return {};
+export function presenceDetailsForTrack(track, settings = DEFAULT_SETTINGS, activityPreferences = null) {
+  if (activityPreferences) {
+    const preferences = normalizeActivityPreferences(activityPreferences);
+    return {
+      statusDisplay: preferences.statusDisplay,
+      showArtwork: preferences.showArtwork,
+      showTimestamps: preferences.showTimestamps,
+      showButtons: preferences.showButtons,
+    };
+  }
+  const service = SERVICE_SETTINGS[track?.source];
+  const keys = track?.settingKeys || (service ? {
+    statusDisplay: service.status,
+    showArtwork: service.artwork,
+    showTimestamps: service.timestamps,
+    showButtons: service.buttons,
+  } : null);
+  if (!keys) return {};
   const current = normalizeSettings(settings);
   return {
-    statusDisplay: current[service.status],
-    showArtwork: current[service.artwork],
-    showTimestamps: current[service.timestamps],
-    showButtons: current[service.buttons],
+    ...(keys.statusDisplay ? { statusDisplay: current[keys.statusDisplay] } : {}),
+    ...(keys.showArtwork ? { showArtwork: current[keys.showArtwork] } : {}),
+    ...(keys.showTimestamps ? { showTimestamps: current[keys.showTimestamps] } : {}),
+    ...(keys.showButtons ? { showButtons: current[keys.showButtons] } : {}),
   };
 }
 
-export function applicationIdForSource(source) {
-  return SERVICE_APPLICATION_IDS[source] || '';
+export function applicationIdForPresence() {
+  return DISCORD_CLIENT_ID;
 }
 
-export function isTrackAllowed(track, settings = DEFAULT_SETTINGS) {
+export function isTrackAllowed(track, settings = DEFAULT_SETTINGS, activityPreferences = null) {
   if (!track) return false;
   const current = normalizeSettings(settings);
   if (!current.enabled) return false;
+  if (track.media && track.playback) {
+    return track.playback.state === 'playing' || normalizeActivityPreferences(activityPreferences).showPaused;
+  }
+  if (track.activityId) {
+    return track.playing || normalizeActivityPreferences(activityPreferences).showPaused;
+  }
   const service = SERVICE_SETTINGS[track.source];
-  if (!service) return true;
-  if (!current[service.enabled]) return false;
-  return track.playing || current[service.paused];
+  if (service) {
+    if (!current[service.enabled]) return false;
+    return track.playing || current[service.paused];
+  }
+  const keys = track.settingKeys;
+  if (!keys) return true;
+  if (keys.enabled && !current[keys.enabled]) return false;
+  return track.playing || !keys.showPaused || current[keys.showPaused];
 }

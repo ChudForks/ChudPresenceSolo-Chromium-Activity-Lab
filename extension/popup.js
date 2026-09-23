@@ -55,10 +55,12 @@ let formHasLoaded = false;
 let saveTimer = 0;
 
 function sourceIcon(track) {
-  return serviceUi[track?.source]?.icon || 'icons/icon32.png';
+  const source = track?.activityId === 'youtube-music' ? 'youtubeMusic' : track?.activityId || track?.source;
+  return serviceUi[source]?.icon || 'icons/icon32.png';
 }
 
 function sourceName(track) {
+  if (track?.activityName) return track.activityName;
   if (track?.source === 'movies67') return '67Movies';
   if (track?.source === 'crunchyroll') return 'Crunchyroll';
   if (track?.source === 'youtube') {
@@ -173,7 +175,12 @@ function renderDashboard(state) {
   const track = state.track;
   const source = sourceName(track);
   const enabled = settings.enabled !== false;
-  const active = enabled && Boolean(track?.title);
+  const title = track?.media?.title || track?.title || '';
+  const playing = track?.playback ? track.playback.state === 'playing' : Boolean(track?.playing);
+  const artist = track?.media?.artist || track?.media?.creator || track?.media?.series ||
+    track?.artist || track?.album || '';
+  const artwork = typeof track?.artwork === 'string' ? track.artwork : track?.artwork?.large || '';
+  const active = enabled && Boolean(title);
 
   document.body.dataset.enabled = String(enabled);
   document.getElementById('brand-status').textContent = !enabled ? 'Activity paused' : active ? `${source} active` : 'Ready to share';
@@ -182,12 +189,12 @@ function renderDashboard(state) {
   presenceState.classList.toggle('active', active);
   presenceState.innerHTML = `<i></i>${active ? 'Active' : enabled ? 'Waiting' : 'Paused'}`;
 
-  if (track?.title) {
-    kickerEl.textContent = track.playing ? `Now playing · ${source}` : `Paused · ${source}`;
-    titleEl.textContent = track.title;
-    artistEl.textContent = [track.artist, track.album].filter(Boolean).join(' • ') || source;
-    if (track.artwork) {
-      artEl.src = track.artwork;
+  if (title) {
+    kickerEl.textContent = playing ? `Now playing · ${source}` : `Paused · ${source}`;
+    titleEl.textContent = title;
+    artistEl.textContent = artist || source;
+    if (artwork) {
+      artEl.src = artwork;
       artEl.hidden = false;
       artFallback.hidden = true;
     } else {
@@ -196,7 +203,7 @@ function renderDashboard(state) {
     }
   } else {
     kickerEl.textContent = enabled ? 'Nothing playing' : 'Activity sharing paused';
-    titleEl.textContent = enabled ? 'Open a supported streaming site' : 'ChudPresence Solo is turned off';
+    titleEl.textContent = enabled ? 'Open a supported streaming site' : 'Activity Lab is turned off';
     artistEl.textContent = enabled ? 'Your activity preview will appear here.' : 'Enable it in Settings when you are ready.';
     artEl.removeAttribute('src');
     artEl.hidden = true;
@@ -207,8 +214,30 @@ function renderDashboard(state) {
   artistEl.title = artistEl.textContent;
   hintEl.textContent = state.delivery?.message || (state.delivery?.authenticated ? 'Ready to share activity.' : 'Share what you are watching or listening to.');
   renderDiscord(state.delivery);
+  renderLocalDiagnostics(state);
   updateServiceStates(settings);
   if (!formHasLoaded) renderForm(settings);
+}
+
+function diagnosticSummary(value) {
+  if (!value) return 'None';
+  if (typeof value === 'string') return value;
+  const time = value.timestamp ? new Date(value.timestamp).toLocaleTimeString() : '';
+  const label = value.title || value.reason || value.state || value.source || value.kind || 'Recorded';
+  return time ? `${label} · ${time}` : label;
+}
+
+function renderLocalDiagnostics(state) {
+  const diagnostics = state.activityDiagnostics || {};
+  const intent = state.finalPresenceIntent;
+  document.getElementById('local-visibility').textContent = diagnostics.visibility || 'Unknown';
+  document.getElementById('local-playback').textContent = diagnostics.playbackState ||
+    state.track?.playback?.state || (state.track?.playing ? 'playing' : state.track?.title ? 'paused' : 'No report');
+  document.getElementById('local-last-report').textContent = diagnosticSummary(diagnostics.lastReport);
+  document.getElementById('local-last-clear').textContent = diagnosticSummary(diagnostics.lastClear);
+  document.getElementById('local-presence-intent').textContent = intent
+    ? `${intent.details || intent.name || 'Activity'}${intent.state ? ` · ${intent.state}` : ''}`
+    : 'Nothing selected';
 }
 
 async function refresh() {

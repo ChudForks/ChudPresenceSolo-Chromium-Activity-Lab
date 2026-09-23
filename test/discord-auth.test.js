@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DiscordRateLimitError, rateLimitErrorFromResponse } from '../extension/discord/auth.js';
+import { discordRedirectUrl } from '../extension/config.js';
+
+test('derives the OAuth callback from this Chromium extension identity', () => {
+  assert.equal(discordRedirectUrl({
+    getRedirectURL: (path) => `https://lab-extension.chromiumapp.org/${path}`,
+  }), 'https://lab-extension.chromiumapp.org/discord');
+  assert.throws(() => discordRedirectUrl({}), /identity API is unavailable/);
+});
 
 test('uses Discord retry_after values for rate-limit errors', () => {
   const error = rateLimitErrorFromResponse(

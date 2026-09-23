@@ -18,7 +18,7 @@ let player = {
   updatedAt: 0,
 };
 
-function routeFromPath(pathname, prefix = 'watch') {
+function routeFromPath(pathname, prefix = 'watch', allowIncompleteTv = false) {
   const match = (pathname || '').match(
     new RegExp(`^/${prefix}/(movie|tv)/(\\d+)(?:/(\\d+)/(\\d+))?/?$`, 'i'),
   );
@@ -26,7 +26,7 @@ function routeFromPath(pathname, prefix = 'watch') {
   const type = match[1].toLowerCase();
   const season = Number(match[3]) || 0;
   const episode = Number(match[4]) || 0;
-  if (type === 'tv' && (!season || !episode)) return null;
+  if (type === 'tv' && (!season || !episode) && !allowIncompleteTv) return null;
   return {
     type,
     id: match[2],
@@ -53,8 +53,14 @@ function playerRouteInfo(pageRoute) {
 }
 
 function routeInfo() {
-  const pageRoute = routeFromPath(location.pathname);
-  return playerRouteInfo(pageRoute) || pageRoute;
+  // Recent 67Movies TV pages identify only the show in the outer URL
+  // (/watch/tv/{id}); the selected season and episode live in the embed URL.
+  const pageRoute = routeFromPath(location.pathname, 'watch', true);
+  if (!pageRoute) return null;
+  const embeddedRoute = playerRouteInfo(pageRoute);
+  if (embeddedRoute) return embeddedRoute;
+  if (pageRoute.type === 'tv' && (!pageRoute.season || !pageRoute.episode)) return null;
+  return pageRoute;
 }
 
 function progressKey(route) {

@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  applicationIdForSource,
+  applicationIdForPresence,
   DEFAULT_SETTINGS,
   isTrackAllowed,
   normalizeSettings,
-  presenceDetailsForSource,
+  presenceDetailsForTrack,
 } from '../extension/core/settings.js';
-import { SERVICE_APPLICATION_IDS } from '../extension/config.js';
+import { DISCORD_CLIENT_ID } from '../extension/config.js';
 
 test('normalizes missing and invalid settings to defaults', () => {
   assert.deepEqual(normalizeSettings({ enabled: false, showArtwork: 'no' }), {
@@ -17,21 +17,19 @@ test('normalizes missing and invalid settings to defaults', () => {
 });
 
 test('filters disabled sources', () => {
-  assert.equal(isTrackAllowed({ source: 'youtube', playing: true }, {
+  assert.equal(isTrackAllowed({
+    source: 'youtube', playing: true, settingKeys: { enabled: 'sourceYouTube' },
+  }, {
     ...DEFAULT_SETTINGS,
     sourceYouTube: false,
   }), false);
-  assert.equal(isTrackAllowed({ source: 'crunchyroll', playing: true }, DEFAULT_SETTINGS), true);
+  assert.equal(isTrackAllowed({ source: 'crunchyroll', activityId: 'crunchyroll', playing: true }, DEFAULT_SETTINGS), true);
 });
 
 test('filters paused tracks only when configured', () => {
-  const paused = { source: 'youtubeMusic', playing: false };
-  assert.equal(isTrackAllowed(paused, DEFAULT_SETTINGS), true);
-  assert.equal(isTrackAllowed(paused, { ...DEFAULT_SETTINGS, youtubeMusicShowPaused: false }), false);
-  assert.equal(isTrackAllowed(
-    { source: 'youtube', playing: false },
-    { ...DEFAULT_SETTINGS, youtubeMusicShowPaused: false },
-  ), true);
+  const paused = { source: 'crunchyroll', activityId: 'crunchyroll', playing: false };
+  assert.equal(isTrackAllowed(paused, DEFAULT_SETTINGS, { showPaused: true }), true);
+  assert.equal(isTrackAllowed(paused, DEFAULT_SETTINGS, { showPaused: false }), false);
 });
 
 test('migrates legacy global presence preferences to every service', () => {
@@ -42,7 +40,7 @@ test('migrates legacy global presence preferences to every service', () => {
     showButtons: false,
   });
 
-  for (const prefix of ['youtube', 'youtubeMusic', 'crunchyroll', 'movies67', 'twitch', 'kick']) {
+  for (const prefix of ['youtube', 'movies67', 'twitch', 'kick']) {
     assert.equal(normalized[`${prefix}ShowPaused`], false);
     assert.equal(normalized[`${prefix}ShowArtwork`], false);
     assert.equal(normalized[`${prefix}ShowTimestamps`], true);
@@ -50,45 +48,58 @@ test('migrates legacy global presence preferences to every service', () => {
   }
 });
 
-test('uses presence details and hard-coded application IDs for the active service', () => {
+test('uses generic track settings and one fixed Discord application identity', () => {
   const settings = {
     ...DEFAULT_SETTINGS,
     youtubeShowArtwork: false,
-    crunchyrollShowButtons: false,
   };
+  const track = { settingKeys: {
+    statusDisplay: 'youtubeStatusDisplay', showArtwork: 'youtubeShowArtwork',
+    showTimestamps: 'youtubeShowTimestamps', showButtons: 'youtubeShowButtons',
+  } };
 
-  assert.equal(applicationIdForSource('youtube', settings), SERVICE_APPLICATION_IDS.youtube);
-  assert.equal(applicationIdForSource('crunchyroll', settings), SERVICE_APPLICATION_IDS.crunchyroll);
-  assert.equal(applicationIdForSource('twitch', settings), SERVICE_APPLICATION_IDS.twitch);
-  assert.equal(applicationIdForSource('kick', settings), SERVICE_APPLICATION_IDS.kick);
-  assert.deepEqual(presenceDetailsForSource('youtube', settings), {
+  assert.equal(applicationIdForPresence(), DISCORD_CLIENT_ID);
+  assert.deepEqual(presenceDetailsForTrack(track, settings), {
     statusDisplay: 'app',
     showArtwork: false,
     showTimestamps: true,
     showButtons: true,
-  });
-  assert.deepEqual(presenceDetailsForSource('crunchyroll', settings), {
-    statusDisplay: 'app',
-    showArtwork: true,
-    showTimestamps: true,
-    showButtons: false,
   });
 });
 
 test('normalizes and selects each service status display preference', () => {
   const settings = normalizeSettings({
     youtubeStatusDisplay: 'creator',
-    youtubeMusicStatusDisplay: 'track',
-    crunchyrollStatusDisplay: 'episode',
     movies67StatusDisplay: 'invalid',
     twitchStatusDisplay: 'streamer',
     kickStatusDisplay: 'stream',
   });
+  const keys = {
+    youtube: { statusDisplay: 'youtubeStatusDisplay' },
+    movies67: { statusDisplay: 'movies67StatusDisplay' },
+    twitch: { statusDisplay: 'twitchStatusDisplay' },
+    kick: { statusDisplay: 'kickStatusDisplay' },
+  };
 
-  assert.equal(presenceDetailsForSource('youtube', settings).statusDisplay, 'creator');
-  assert.equal(presenceDetailsForSource('youtubeMusic', settings).statusDisplay, 'track');
-  assert.equal(presenceDetailsForSource('crunchyroll', settings).statusDisplay, 'episode');
-  assert.equal(presenceDetailsForSource('movies67', settings).statusDisplay, 'app');
-  assert.equal(presenceDetailsForSource('twitch', settings).statusDisplay, 'streamer');
-  assert.equal(presenceDetailsForSource('kick', settings).statusDisplay, 'stream');
+  assert.equal(presenceDetailsForTrack({ settingKeys: keys.youtube }, settings).statusDisplay, 'creator');
+  assert.equal(presenceDetailsForTrack({ settingKeys: keys.movies67 }, settings).statusDisplay, 'app');
+  assert.equal(presenceDetailsForTrack({ settingKeys: keys.twitch }, settings).statusDisplay, 'streamer');
+  assert.equal(presenceDetailsForTrack({ settingKeys: keys.kick }, settings).statusDisplay, 'stream');
+});
+
+test('applies installed Activity preferences to paused filtering and presence details', () => {
+  const track = { activityId: 'sample-activity', source: 'sample-activity', playing: false };
+  assert.equal(isTrackAllowed(track, DEFAULT_SETTINGS, { showPaused: false }), false);
+  assert.equal(isTrackAllowed(track, DEFAULT_SETTINGS, { showPaused: true }), true);
+  assert.deepEqual(presenceDetailsForTrack(track, DEFAULT_SETTINGS, {
+    statusDisplay: 'track',
+    showArtwork: false,
+    showTimestamps: false,
+    showButtons: false,
+  }), {
+    statusDisplay: 'track',
+    showArtwork: false,
+    showTimestamps: false,
+    showButtons: false,
+  });
 });

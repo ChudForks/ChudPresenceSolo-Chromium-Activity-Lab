@@ -1,0 +1,9 @@
+# Privacy — Chromium Activity Lab
+
+This local development extension reads playback metadata on its packaged supported sites and on sites for which you install an Activity and grant host access. A report can include the media title, creator or artist, playback state and position, artwork URL, and page link. The Library keeps installed Activity code, preferences, and recent diagnostics in extension storage. Activity code runs in a Chromium user script world and does not receive Discord credentials or unrestricted extension APIs.
+
+The Activity Library downloads the public catalog and package files from the `ChudForks/ChudPresence-Activities` GitHub repository when you use Discover or Updates. Local file loading reads files you select. Activities can make bounded HTTPS requests only to their declared network patterns; requests omit cookies, reject redirects, and cannot target Discord endpoints. The packaged 67Movies adapter requests title and artwork metadata from The Movie Database using the current page's movie or TV identifier.
+
+The popup's local presence intent is computed inside the extension. Nothing is sent to Discord until you explicitly connect it and enable sharing. If connected, the extension sends the selected media details needed for the presence and stores OAuth and session credentials in extension storage. Disconnect clears the active presence and revokes authorization. The Discord transport uses an undocumented Headless Sessions API and is experimental.
+
+This lab does not include analytics, advertising, or a remote telemetry service. Remove an Activity to unregister its script and delete its stored source. Uninstall the lab extension to delete its local storage. No release or publication is part of this repository's local porting workflow.

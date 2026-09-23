@@ -1,4 +1,4 @@
-import { DISCORD_CLIENT_ID, DISCORD_REDIRECT_URL } from '../config.js';
+import { DISCORD_CLIENT_ID, discordRedirectUrl } from '../config.js';
 
 const API_BASE = 'https://discord.com/api/v10';
 const AUTHORIZE_URL = 'https://discord.com/oauth2/authorize';
@@ -104,7 +104,7 @@ export async function initializeAuth() {
 }
 
 export function getRedirectUrl() {
-  return DISCORD_REDIRECT_URL;
+  return discordRedirectUrl();
 }
 
 export function getClientId() {
