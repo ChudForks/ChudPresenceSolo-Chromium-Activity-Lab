@@ -62,7 +62,7 @@ function legacyButtons(track) {
     ].filter(Boolean);
   }
 
-  return [{ label: 'Open', url }];
+  return [{ label: track.source === 'twitch' ? 'Watch on Twitch' : 'Open', url }];
 }
 
 function reportForTrack(track) {
