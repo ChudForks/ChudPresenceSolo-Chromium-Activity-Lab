@@ -206,6 +206,7 @@ function scriptDefinition(record, extensionVersion = '0.0.0') {
     '  const __request = (operation, payload = {}) => chrome.runtime.sendMessage({',
     '    type: "CHUDPRESENCE_ACTIVITY_REQUEST",',
     '    activityId: __activityIdentity.activityId,',
+    '    activityVersion: __activityIdentity.activityVersion,',
     '    capability: __activityIdentity.capability,',
     '    apiVersion: __activityIdentity.apiVersion,',
     '    requestId: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`,',
@@ -657,6 +658,7 @@ function scriptDefinition(record, extensionVersion = '0.0.0') {
     worldId: activityWorldId(id),
     world: 'USER_SCRIPT',
     matches: [...record.metadata.matches],
+    ...(record.metadata.excludeMatches?.length ? { excludeMatches: [...record.metadata.excludeMatches] } : {}),
     allFrames: record.metadata.frames === 'all',
     runAt: 'document_idle',
     js: [{ code }],
@@ -1823,6 +1825,7 @@ export class ActivityManager {
     if (!record || record.metadata.id !== id || !record.enabled ||
         !ACTIVITY_CAPABILITY_PATTERN.test(record.capability || '') || message.capability !== record.capability ||
         typeof tabId !== 'number') return false;
+    if (structured && message.activityVersion !== record.metadata.version) return false;
     if (!record.metadata.matches.some((pattern) => safeMatch(pattern, sender.url || ''))) return false;
     if ((record.metadata.excludeMatches || []).some((pattern) => safeMatch(pattern, sender.url || ''))) return false;
 
@@ -2087,9 +2090,10 @@ export class ActivityManager {
       activityCategory: record.metadata.category || 'other',
       activityVersion: record.metadata.version,
     };
+    const presenceTrack = redactActivityCapability(track, record.capability);
     const diagnostics = this.activityDiagnostics.get(id) || {};
     diagnostics.rawReport = sanitizeDiagnosticValue(reportValue);
-    diagnostics.normalizedReport = sanitizeDiagnosticValue(track);
+    diagnostics.normalizedReport = sanitizeDiagnosticValue(presenceTrack);
     diagnostics.lastReport = {
       timestamp: new Date().toISOString(),
       tabId,
@@ -2106,7 +2110,7 @@ export class ActivityManager {
       senderUrl: sender.url || '',
       lastSeen: Date.now(),
       active: true,
-      track,
+      track: presenceTrack,
       retiredDocumentIds,
     });
     for (const [childFrameId, childContext] of staleChildren) {
@@ -2125,7 +2129,7 @@ export class ActivityManager {
       parentFrameId: Number.isInteger(sender.parentFrameId) ? sender.parentFrameId : null,
       senderUrl: sender.url || '',
       tabId,
-      track,
+      track: presenceTrack,
     });
     return respond(true, { accepted: true });
   }

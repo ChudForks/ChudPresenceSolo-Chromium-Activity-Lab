@@ -81,7 +81,7 @@ test('rejects page execution cleanly when Chrome does not expose userScripts.exe
   delete api.userScripts.execute;
   const manager = new ActivityManager({ api });
   const result = await manager.handleUserScriptMessage({
-    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', capability, apiVersion: 1, requestId: 'request-1',
+    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', activityVersion: '1.0.0', capability, apiVersion: 1, requestId: 'request-1',
     operation: 'page.execute', payload: { source: '() => document.title', argsJson: '[]' },
   }, {
     userScriptWorldId: 'chudpresence.activity.sample-activity',
@@ -105,7 +105,7 @@ test('accepts Chrome user-script messages without worldId only with the installe
     frameId: 0, documentId: 'document-7', documentLifecycle: 'active', tab: { id: 7 },
   };
   const message = {
-    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', capability,
+    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', activityVersion: '1.0.0', capability,
     apiVersion: 1, requestId: 'request-1', operation: 'settings.getAll', payload: {},
   };
 
@@ -123,7 +123,7 @@ test('continues to enforce sender world identity when Chromium provides it', asy
     'sample-activity': { metadata, code: 'void 0;', enabled: true, capability },
   } }) });
   const message = {
-    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', capability,
+    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', activityVersion: '1.0.0', capability,
     apiVersion: 1, requestId: 'request-1', operation: 'settings.getAll', payload: {},
   };
   const sender = {
@@ -212,7 +212,7 @@ test('rotates ownership capability when an Activity is reinstalled', async () =>
   assert.notEqual(secondCapability, firstCapability);
   assert.match(registrations.at(-1).js[0].code, new RegExp(secondCapability));
   assert.equal(await manager.handleUserScriptMessage({
-    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', capability: firstCapability,
+    type: 'CHUDPRESENCE_ACTIVITY_REQUEST', activityId: 'sample-activity', activityVersion: '1.0.0', capability: firstCapability,
     apiVersion: 1, requestId: 'stale-request', operation: 'settings.getAll', payload: {},
   }, {
     id: 'extension-id', url: 'https://example.com/watch', origin: 'https://example.com',

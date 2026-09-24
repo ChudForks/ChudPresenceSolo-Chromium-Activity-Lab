@@ -1,6 +1,7 @@
 import { selectActivity } from './core/activity.js';
 import { ActivityRegistry } from './core/activity-registry.js';
 import { ActivityManager, sanitizeDiagnosticValue } from './core/activity-manager.js';
+import { registerActivityRestoreHandlers } from './core/activity-restore.js';
 import { shouldInvalidateActivityTab } from './core/tab-lifecycle.js';
 import { createPresenceIntent } from './core/presence.js';
 import {
@@ -34,17 +35,20 @@ let settings = { ...DEFAULT_SETTINGS };
 let delivery = presencePublisher.status();
 let pushTimer = 0;
 
-chrome.runtime.onInstalled.addListener(async () => {
-  const stored = await chrome.storage.local.get(null);
-  await chrome.storage.local.set(normalizeSettings(stored));
-  await chrome.storage.local.remove([
-    'bridgeUrl',
-    'discordClientId',
-    ...LEGACY_APPLICATION_ID_SETTINGS,
-    ...LEGACY_DETAIL_SETTINGS,
-  ]);
-  // Chrome clears registered user scripts on an extension update.
-  await activityManager.restoreAll();
+registerActivityRestoreHandlers({
+  runtime: chrome.runtime,
+  manager: activityManager,
+  beforeInstallRestore: async () => {
+    const stored = await chrome.storage.local.get(null);
+    await chrome.storage.local.set(normalizeSettings(stored));
+    await chrome.storage.local.remove([
+      'bridgeUrl',
+      'discordClientId',
+      ...LEGACY_APPLICATION_ID_SETTINGS,
+      ...LEGACY_DETAIL_SETTINGS,
+    ]);
+    // Chrome clears registered user scripts on an extension update.
+  },
 });
 
 async function loadSettings() {
@@ -392,10 +396,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   presencePublisher.renew().then((result) => {
     delivery = result;
   });
-});
-
-chrome.runtime.onStartup.addListener(() => {
-  activityManager.restoreAll().catch(() => {});
 });
 
 chrome.permissions?.onRemoved?.addListener(() => {
