@@ -49,6 +49,22 @@ function isNormalizedActivityReport(track) {
   return Boolean(track?.media && track?.playback && track?.display && track?.artwork);
 }
 
+function legacyButtons(track) {
+  if (Array.isArray(track.buttons)) return track.buttons;
+  const url = safeUrl(track.url);
+  if (!url) return [];
+
+  if (track.source === 'youtube') {
+    const channelUrl = safeUrl(track.channelUrl);
+    return [
+      { label: track.kind === 'short' ? 'Watch Short' : 'Watch on YouTube', url },
+      channelUrl && channelUrl !== url ? { label: 'View channel', url: channelUrl } : null,
+    ].filter(Boolean);
+  }
+
+  return [{ label: 'Open', url }];
+}
+
 function reportForTrack(track) {
   if (isNormalizedActivityReport(track)) return track;
   const kind = track.kind === 'short' ? 'video' : track.kind === 'live' ? 'stream' : track.kind || 'generic';
@@ -105,9 +121,7 @@ function reportForTrack(track) {
     },
     ...(!track.activityName && legacyLayout ? { activityName: legacyLayout.name } : {}),
     artwork: legacyArtwork,
-    buttons: Array.isArray(track.buttons)
-      ? track.buttons
-      : track.url ? [{ label: 'Open', url: track.url }] : [],
+    buttons: legacyButtons(track),
     visibility: track.ad ? 'ad' : track.idle ? 'idle' : 'normal',
   };
 }
