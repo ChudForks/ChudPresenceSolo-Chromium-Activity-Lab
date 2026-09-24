@@ -22,6 +22,17 @@ for (const file of await javascriptFiles(extension)) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' });
 }
 const activities = path.join(root, 'ChudPresence-Activities');
+const bundledYouTube = path.join(extension, 'default-activities', 'youtube');
+for (const filename of ['metadata.json', 'activity.js', 'icon.png']) {
+  const bundled = await fs.readFile(path.join(bundledYouTube, filename));
+  assert.ok(bundled.length > 0, `bundled YouTube ${filename} is empty`);
+  try {
+    const catalogCopy = await fs.readFile(path.join(activities, 'activities', 'youtube', filename));
+    assert.deepEqual(bundled, catalogCopy, `bundled YouTube ${filename} differs from the Activity catalog`);
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+}
 const schemaRoot = path.join(root, 'schemas');
 const apiContract = JSON.parse(await fs.readFile(path.join(schemaRoot, 'activity-api-v1.json'), 'utf8'));
 const generatedMetadataSchema = JSON.parse(await fs.readFile(path.join(schemaRoot, 'activity.schema.json'), 'utf8'));

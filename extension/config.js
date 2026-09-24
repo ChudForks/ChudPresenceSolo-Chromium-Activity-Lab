@@ -9,12 +9,3 @@ export function discordRedirectUrl(identity = globalThis.chrome?.identity) {
   }
   return identity.getRedirectURL('discord');
 }
-
-export const SERVICE_APPLICATION_IDS = Object.freeze({
-  youtube: DISCORD_CLIENT_ID,
-  youtubeMusic: DISCORD_CLIENT_ID,
-  crunchyroll: DISCORD_CLIENT_ID,
-  movies67: DISCORD_CLIENT_ID,
-  twitch: DISCORD_CLIENT_ID,
-  kick: DISCORD_CLIENT_ID,
-});

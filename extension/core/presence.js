@@ -3,10 +3,6 @@ import { EXTENSION_NAME } from './branding.js';
 const MAX_TEXT_LENGTH = 128;
 
 const LEGACY_SOURCE_LAYOUTS = Object.freeze({
-  youtube: {
-    name: 'YouTube',
-    statusFields: { app: 'name', creator: 'state', video: 'details' },
-  },
   youtubeMusic: {
     name: 'YouTube Music',
     statusFields: { app: 'name', artist: 'state', track: 'details' },
@@ -18,14 +14,6 @@ const LEGACY_SOURCE_LAYOUTS = Object.freeze({
   movies67: {
     name: '67Movies',
     statusFields: { app: 'name', series: 'details', episode: 'state' },
-  },
-  twitch: {
-    name: 'Twitch',
-    statusFields: { app: 'name', streamer: 'state', stream: 'details' },
-  },
-  kick: {
-    name: 'Kick',
-    statusFields: { app: 'name', streamer: 'state', stream: 'details' },
   },
 });
 
@@ -54,14 +42,6 @@ function legacyButtons(track) {
   const url = safeUrl(track.url);
   if (!url) return [];
 
-  if (track.source === 'youtube') {
-    const channelUrl = safeUrl(track.channelUrl);
-    return [
-      { label: track.kind === 'short' ? 'Watch Short' : 'Watch on YouTube', url },
-      channelUrl && channelUrl !== url ? { label: 'View channel', url: channelUrl } : null,
-    ].filter(Boolean);
-  }
-
   if (track.source === 'movies67') {
     return [
       { label: track.kind === 'movie' ? 'Watch movie' : 'Watch on 67Movies', url },
@@ -69,12 +49,7 @@ function legacyButtons(track) {
     ];
   }
 
-  const label = track.source === 'twitch'
-    ? 'Watch on Twitch'
-    : track.source === 'kick'
-      ? 'Watch on Kick'
-      : 'Open';
-  return [{ label, url }];
+  return [{ label: 'Open', url }];
 }
 
 function reportForTrack(track) {
@@ -93,7 +68,6 @@ function reportForTrack(track) {
     category: track.category,
   };
   const displayDefaults = (() => {
-    if (track.source === 'youtube') return { details: media.title, state: media.artist || media.channel || '' };
     if (track.source === 'youtubeMusic') return { details: media.title, state: media.artist || '' };
     if (track.source === 'crunchyroll' || track.source === 'movies67') {
       const movie = track.kind === 'movie';
@@ -101,9 +75,6 @@ function reportForTrack(track) {
         details: movie ? media.title : media.series || media.artist || media.title,
         state: movie ? legacyLayout.name : media.album || media.title,
       };
-    }
-    if (track.source === 'twitch' || track.source === 'kick') {
-      return { details: media.title, state: media.artist || media.creator || '' };
     }
     if (kind === 'song') return { details: media.title, state: media.artist || '' };
     if (kind === 'episode') return { details: media.series || media.title, state: media.title };

@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import test from 'node:test';
 import { DEFAULT_ACTIVITY_PREFERENCES } from '../extension/core/activity-settings.js';
-import { DEFAULT_SETTINGS, SERVICE_SETTINGS } from '../extension/core/settings.js';
+import { DEFAULT_SETTINGS } from '../extension/core/settings.js';
 
 class FakeClassList {
   constructor(element) { this.element = element; }
@@ -191,11 +191,6 @@ function createPopupDocument(html) {
   const serviceGrid = new FakeElement('div', { className: 'service-grid' });
   elements.set('service-grid', serviceGrid);
   activityView.append(serviceGrid);
-  for (const service of Object.keys(SERVICE_SETTINGS)) {
-    const tile = new FakeElement('article', { className: 'service-tile' });
-    tile.dataset.service = service;
-    serviceGrid.append(tile);
-  }
   const form = elements.get('settings-form');
   const enabled = new FakeElement('input');
   enabled.id = 'enabled';
@@ -204,8 +199,7 @@ function createPopupDocument(html) {
   form.append(enabled);
   const activitySettings = elements.get('activity-settings');
   const activitySection = elements.get('activity-settings-section');
-  const serviceSettings = elements.get('service-settings');
-  form.append(serviceSettings, activitySection);
+  form.append(activitySection);
   activitySection.append(activitySettings);
   settingsView.append(form);
   body.append(activityView, settingsView);
@@ -335,7 +329,7 @@ async function createPopupHarness({ activities = [], state = {}, rejectNext = nu
     __activitySettings: activitySettingsModule,
   });
   const executableSource = source
-    .replace("import { DEFAULT_SETTINGS, normalizeSettings, SERVICE_SETTINGS } from './core/settings.js';", 'const { DEFAULT_SETTINGS, normalizeSettings, SERVICE_SETTINGS } = __settings;')
+    .replace("import { DEFAULT_SETTINGS, normalizeSettings } from './core/settings.js';", 'const { DEFAULT_SETTINGS, normalizeSettings } = __settings;')
     .replace("import { DEFAULT_ACTIVITY_PREFERENCES } from './core/activity-settings.js';", 'const { DEFAULT_ACTIVITY_PREFERENCES } = __activitySettings;');
   vm.runInContext(`${executableSource}\nglobalThis.__popupTest = { refresh, refreshInstalledActivities, showActivitySettings, renderDashboard };`, context);
   await new Promise((resolve) => setImmediate(resolve));
@@ -395,7 +389,7 @@ test('popup handles zero installed Activities and dynamically renders enabled an
   assert.equal(opened.wasScrolledIntoView, true);
 });
 
-test('Activity preference, status, and enable changes use backend messages and preserve packaged settings', async () => {
+test('Activity preference, status, and enable changes use backend messages', async () => {
   const activity = {
     id: 'generic-listening-service', name: 'Generic Listening Service', enabled: true,
     icon: 'data:image/png;base64,BBBB',
@@ -439,14 +433,10 @@ test('Activity preference, status, and enable changes use backend messages and p
   assert.equal(popup.installed[0].preferences.statusDisplay, 'artist');
   assert.equal(popup.installed[0].preferences.showButtons, false);
 
-  const packagedEnabled = popup.form.elements.namedItem(SERVICE_SETTINGS.youtube.enabled);
-  packagedEnabled.checked = false;
-  await popup.form.emitChange(packagedEnabled);
-  assert.equal(popup.storageWrites.at(-1)[SERVICE_SETTINGS.youtube.enabled], false);
   assert.equal(popup.calls.some((message) => message.type === 'ACTIVITY_SET_PREFERENCES' && message.id === activity.id), true);
 
   await popup.context.__popupTest.refreshInstalledActivities();
-  assert.equal(popup.storageWrites.length, 1, 'opening or refreshing Activity state does not rewrite preferences');
+  assert.equal(popup.storageWrites.length, 0, 'opening or refreshing Activity state does not rewrite preferences');
   assert.equal(popup.installed[0].preferences.statusDisplay, 'artist');
 });
 

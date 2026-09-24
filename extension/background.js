@@ -2,6 +2,10 @@ import { selectActivity } from './core/activity.js';
 import { ActivityRegistry } from './core/activity-registry.js';
 import { ActivityManager, sanitizeDiagnosticValue } from './core/activity-manager.js';
 import { registerActivityRestoreHandlers } from './core/activity-restore.js';
+import {
+  ensureBundledYouTubeInstalled,
+  rememberBundledYouTubeRemoval,
+} from './core/default-activity.js';
 import { shouldInvalidateActivityTab } from './core/tab-lifecycle.js';
 import { createPresenceIntent } from './core/presence.js';
 import {
@@ -10,6 +14,7 @@ import {
   isTrackAllowed,
   LEGACY_APPLICATION_ID_SETTINGS,
   LEGACY_DETAIL_SETTINGS,
+  RETIRED_PROVIDER_SETTINGS,
   normalizeSettings,
   presenceDetailsForTrack,
 } from './core/settings.js';
@@ -30,6 +35,16 @@ const activityManager = new ActivityManager({
     schedulePublish();
   },
 });
+let defaultInstallPromise = null;
+function ensureDefaultYouTube() {
+  if (defaultInstallPromise) return defaultInstallPromise;
+  defaultInstallPromise = ensureBundledYouTubeInstalled({
+    manager: activityManager,
+    storage: chrome.storage.local,
+    api: chrome,
+  }).finally(() => { defaultInstallPromise = null; });
+  return defaultInstallPromise;
+}
 let activeTabId = null;
 let settings = { ...DEFAULT_SETTINGS };
 let delivery = presencePublisher.status();
@@ -38,6 +53,7 @@ let pushTimer = 0;
 registerActivityRestoreHandlers({
   runtime: chrome.runtime,
   manager: activityManager,
+  afterInstallRestore: ensureDefaultYouTube,
   beforeInstallRestore: async () => {
     const stored = await chrome.storage.local.get(null);
     await chrome.storage.local.set(normalizeSettings(stored));
@@ -46,6 +62,7 @@ registerActivityRestoreHandlers({
       'discordClientId',
       ...LEGACY_APPLICATION_ID_SETTINGS,
       ...LEGACY_DETAIL_SETTINGS,
+      ...RETIRED_PROVIDER_SETTINGS,
     ]);
     // Chrome clears registered user scripts on an extension update.
   },
@@ -166,6 +183,7 @@ function onDocumentGone(tabId, documentId, { closing = false, frameId = null } =
 
 async function handleActivityLibraryMessage(message) {
   if (message.type === 'ACTIVITY_LIBRARY_STATE') {
+    await ensureDefaultYouTube().catch(() => {});
     const state = await activityManager.status();
     const track = currentTrack();
     return {
@@ -180,7 +198,11 @@ async function handleActivityLibraryMessage(message) {
     return result;
   }
   if (message.type === 'ACTIVITY_REMOVE') {
+    await defaultInstallPromise?.catch(() => {});
     const removed = await activityManager.remove(message.id);
+    if (removed && message.id === 'youtube') {
+      await rememberBundledYouTubeRemoval(chrome.storage.local);
+    }
     schedulePublish();
     return { removed };
   }
@@ -405,7 +427,7 @@ chrome.permissions?.onRemoved?.addListener(() => {
 chrome.permissions?.onAdded?.addListener(() => {
   registerUserScriptMessageListener();
   registerUserScriptConnectListener();
-  activityManager.restoreAll().catch(() => {});
+  activityManager.restoreAll().then(ensureDefaultYouTube).catch(() => {});
 });
 
 chrome.alarms.create(ACTIVITY_PRUNE_ALARM, { delayInMinutes: 0.5, periodInMinutes: 0.5 });
@@ -414,7 +436,7 @@ chrome.alarms.create(ACTIVITY_PRUNE_ALARM, { delayInMinutes: 0.5, periodInMinute
 // independently of Discord initialization so a network/auth failure cannot
 // prevent installed Activities from resuming.
 loadSettings().catch(() => {});
-activityManager.restoreAll().catch(() => {});
+activityManager.restoreAll().then(ensureDefaultYouTube).catch(() => {});
 presencePublisher.initialize().then(() => {
   delivery = presencePublisher.status();
 }).catch(() => {});

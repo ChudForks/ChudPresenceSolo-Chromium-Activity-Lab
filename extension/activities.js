@@ -94,7 +94,9 @@ function hostSummary(matches = []) {
 function refreshCounters() {
   const updateCount = catalog?.activities?.filter((entry) => {
     const record = installedById().get(entry.id);
-    return !compatibilityMessage(entry) && record?.source?.type === 'repository' && compareActivityVersions(entry.version, record.version) > 0;
+    return !compatibilityMessage(entry) &&
+      ['repository', 'bundled'].includes(record?.source?.type) &&
+      compareActivityVersions(entry.version, record.version) > 0;
   }).length || 0;
   document.getElementById('installed-count').textContent = String(installed.length);
   document.getElementById('update-count').textContent = String(updateCount);
@@ -167,7 +169,8 @@ function renderDiscover() {
       actions.append(actionButton('Unavailable', 'secondary', () => {}, true));
     } else if (!record) {
       actions.append(actionButton('Install', 'primary', () => installRepositoryActivity(entry)));
-    } else if (record.source?.type === 'repository' && compareActivityVersions(entry.version, record.version) > 0) {
+    } else if (['repository', 'bundled'].includes(record.source?.type) &&
+        compareActivityVersions(entry.version, record.version) > 0) {
       actions.append(actionButton(`Update to ${formatVersion(entry.version)}`, 'primary', () => installRepositoryActivity(entry)));
     } else {
       actions.append(actionButton('Installed', 'secondary', () => showView('installed'), true));
@@ -258,7 +261,8 @@ function renderInstalled() {
       error: 'Error',
     }[record.status] || 'Waiting for site';
     const badge = card.querySelector('.badge');
-    badge.textContent = `${record.source?.type === 'local' ? 'Local · ' : ''}${statusText}`;
+    badge.textContent = `${record.source?.type === 'local' ? 'Local · '
+      : record.source?.type === 'bundled' ? 'Included · ' : ''}${statusText}`;
     badge.title = record.error || '';
     badge.className = `badge${record.status === 'detected' ? ' active' : ['incompatible', 'permission-missing', 'error'].includes(record.status) ? ' issue' : record.source?.type === 'local' ? ' local' : ''}`;
     if (developerEnabled.checked) {
@@ -312,11 +316,13 @@ function renderUpdates() {
   const installedMap = installedById();
   const pending = entries.filter((entry) => {
     const record = installedMap.get(entry.id);
-    return !compatibilityMessage(entry) && record?.source?.type === 'repository' && compareActivityVersions(entry.version, record.version) > 0;
+    return !compatibilityMessage(entry) &&
+      ['repository', 'bundled'].includes(record?.source?.type) &&
+      compareActivityVersions(entry.version, record.version) > 0;
   });
   if (!pending.length) {
     appendEmpty(updatesList, 'You’re up to date', catalog
-      ? 'No updates are available for repository Activities.'
+      ? 'No Activity updates are available.'
       : 'Refresh the catalog to check for updates.');
     return;
   }

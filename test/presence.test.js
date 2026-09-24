@@ -134,29 +134,23 @@ test('omits timers while paused and rejects unsafe URLs', () => {
   assert.equal(intent.state, 'Episode title • Paused');
 });
 
-test('uses YouTube layouts for videos, Shorts, and live streams', () => {
+test('uses generic Activity reports for YouTube Shorts and live streams', () => {
   const short = createPresenceIntent({
+    activityId: 'youtube',
     activityName: 'YouTube',
-    presenceKind: 'video',
-    source: 'youtube',
-    kind: 'short',
-    title: 'A Short',
-    artist: 'A Creator',
-    artwork: 'https://example.com/short.jpg',
-    url: 'https://www.youtube.com/shorts/abcdefghijk',
-    channelUrl: 'https://www.youtube.com/@creator',
-    display: {
-      details: 'A Short', state: 'A Creator', largeText: 'A Short',
-      statusFields: { app: 'name', creator: 'state', video: 'details' },
-    },
-    buttons: [
-      { label: 'Watch Short', url: 'https://www.youtube.com/shorts/abcdefghijk' },
-      { label: 'View channel', url: 'https://www.youtube.com/@creator' },
-    ],
-    playing: true,
-    position: 5,
-    duration: 20,
-  }, 1_000_000, { statusDisplay: 'creator' });
+    source: 'activity',
+    ...normalizeActivityReport({
+      kind: 'video',
+      media: { title: 'A Short', creator: 'A Creator' },
+      playback: { state: 'playing', position: 5, duration: 20 },
+      display: { details: 'A Short', state: 'A Creator' },
+      artwork: { large: 'https://example.com/short.jpg', largeText: 'A Short' },
+      buttons: [
+        { label: 'Watch Short', url: 'https://www.youtube.com/shorts/abcdefghijk' },
+        { label: 'View channel', url: 'https://www.youtube.com/@creator' },
+      ],
+    }),
+  }, 1_000_000, { statusDisplay: 'artist' });
 
   assert.equal(short.name, 'YouTube');
   assert.equal(short.details, 'A Short');
@@ -168,20 +162,17 @@ test('uses YouTube layouts for videos, Shorts, and live streams', () => {
   ]);
 
   const live = createPresenceIntent({
+    activityId: 'youtube',
     activityName: 'YouTube',
-    presenceKind: 'streaming',
-    source: 'youtube',
-    kind: 'live',
-    live: true,
-    title: 'Live now',
-    artist: 'A Channel',
-    playing: true,
-    position: 90,
-    display: {
-      details: 'Live now', state: 'A Channel',
-      statusFields: { app: 'name', creator: 'state', video: 'details' },
-    },
-  }, 1_000_000, { statusDisplay: 'video' });
+    source: 'activity',
+    ...normalizeActivityReport({
+      kind: 'stream',
+      media: { title: 'Live now', creator: 'A Channel' },
+      playback: { state: 'playing', position: 90, live: true },
+      display: { details: 'Live now', state: 'A Channel' },
+      buttons: [{ label: 'Watch on YouTube', url: 'https://www.youtube.com/watch?v=abcdefghijk' }],
+    }),
+  }, 1_000_000, { statusDisplay: 'track' });
 
   assert.equal(live.state, 'A Channel • Live');
   assert.equal(live.statusDisplayType, 'details');
@@ -227,6 +218,60 @@ test('uses Activity-authored Crunchyroll display overrides without a provider br
   assert.deepEqual(movie.buttons, [
     { label: 'Watch movie', url: 'https://www.crunchyroll.com/watch/MOVIE123' },
   ]);
+});
+
+test('uses Activity-authored 67Movies display without a provider branch', () => {
+  const episode = createPresenceIntent({
+    activityId: '67movies',
+    activityName: '67Movies',
+    source: 'activity',
+    ...normalizeActivityReport({
+      kind: 'episode',
+      media: {
+        title: 'Episode title',
+        series: 'Series name',
+        season: 2,
+        episode: 4,
+        subtitle: 'Season 2, Episode 4',
+      },
+      display: { details: 'Series name', state: 'Season 2, Episode 4' },
+      artwork: {
+        large: 'https://image.tmdb.org/t/p/w500/still.jpg',
+        largeText: 'Season 2, Episode 4 • Episode title',
+      },
+      buttons: [
+        { label: 'Watch on 67Movies', url: 'https://67movies.st/watch/tv/123/2/4' },
+        { label: 'Open 67Movies', url: 'https://67movies.st/' },
+      ],
+    }),
+  }, 1_000_000);
+
+  assert.equal(episode.name, '67Movies');
+  assert.equal(episode.type, 'watching');
+  assert.equal(episode.details, 'Series name');
+  assert.equal(episode.state, 'Season 2, Episode 4');
+  assert.equal(episode.assets.largeText, 'Season 2, Episode 4 • Episode title');
+  assert.deepEqual(episode.buttons, [
+    { label: 'Watch on 67Movies', url: 'https://67movies.st/watch/tv/123/2/4' },
+    { label: 'Open 67Movies', url: 'https://67movies.st/' },
+  ]);
+
+  const movie = createPresenceIntent({
+    activityId: '67movies',
+    activityName: '67Movies',
+    source: 'activity',
+    ...normalizeActivityReport({
+      kind: 'movie',
+      media: { title: 'Example Movie', subtitle: '2024' },
+      buttons: [
+        { label: 'Watch movie', url: 'https://67movies.st/watch/movie/456' },
+        { label: 'Open 67Movies', url: 'https://67movies.st/' },
+      ],
+    }),
+  });
+  assert.equal(movie.details, 'Example Movie');
+  assert.equal(movie.state, '67Movies');
+  assert.equal(movie.buttons[0].label, 'Watch movie');
 });
 
 test('uses dedicated 67Movies episode and movie layouts', () => {
@@ -286,28 +331,22 @@ test('uses dedicated 67Movies episode and movie layouts', () => {
   ]);
 });
 
-test('uses a dedicated Twitch stream layout', () => {
+test('uses a generic Activity report for Twitch live presence', () => {
   const live = createPresenceIntent({
+    activityId: 'twitch',
     activityName: 'Twitch',
-    presenceKind: 'streaming',
-    source: 'twitch',
-    kind: 'live',
-    live: true,
-    title: 'Ranked with friends',
-    artist: 'Streamer',
-    artwork: 'https://static-cdn.jtvnw.net/preview.jpg',
-    url: 'https://www.twitch.tv/streamer',
-    channelUrl: 'https://www.twitch.tv/streamer',
-    playing: true,
-    position: 75,
-    display: {
-      details: 'Ranked with friends', state: 'Streamer', largeText: 'Ranked with friends',
-      statusFields: { app: 'name', streamer: 'state', stream: 'details' },
-    },
+    source: 'activity',
+    kind: 'stream',
+    media: { title: 'Ranked with friends', creator: 'Streamer' },
+    playback: { state: 'playing', position: 75, duration: 0, live: true },
+    artwork: { large: 'https://static-cdn.jtvnw.net/preview.jpg', largeText: 'Ranked with friends' },
+    display: { details: 'Ranked with friends', state: 'Streamer', statusDisplay: 'details' },
     buttons: [{ label: 'Watch on Twitch', url: 'https://www.twitch.tv/streamer' }],
-  }, 1_000_000, { statusDisplay: 'streamer' });
+    visibility: 'normal',
+  }, 1_000_000, { statusDisplay: 'artist' });
 
   assert.equal(live.name, 'Twitch');
+  assert.equal(live.type, 'streaming');
   assert.equal(live.state, 'Streamer • Live');
   assert.equal(live.statusDisplayType, 'state');
   assert.deepEqual(live.timestamps, { start: 925 });
@@ -316,29 +355,23 @@ test('uses a dedicated Twitch stream layout', () => {
   ]);
 });
 
-test('uses a dedicated Kick stream layout', () => {
+test('uses a generic Activity report for Kick VOD presence', () => {
   const vod = createPresenceIntent({
+    activityId: 'kick',
     activityName: 'Kick',
     presenceKind: 'video',
-    source: 'kick',
+    source: 'activity',
     kind: 'video',
-    title: 'A past broadcast',
-    artist: 'Streamer',
-    artwork: 'https://images.kick.com/video.jpg',
-    url: 'https://kick.com/streamer/videos/01234567-89ab-cdef-0123-456789abcdef',
-    channelUrl: 'https://kick.com/streamer',
-    playing: true,
-    position: 40,
-    duration: 120,
-    display: {
-      details: 'A past broadcast', state: 'Streamer', largeText: 'A past broadcast',
-      statusFields: { app: 'name', streamer: 'state', stream: 'details' },
-    },
+    media: { title: 'A past broadcast', creator: 'Streamer' },
+    playback: { state: 'playing', position: 40, duration: 120, live: false },
+    artwork: { large: 'https://images.kick.com/video.jpg', largeText: 'A past broadcast' },
+    display: { details: 'A past broadcast', state: 'Streamer', statusDisplay: 'details' },
     buttons: [
       { label: 'Watch on Kick', url: 'https://kick.com/streamer/videos/01234567-89ab-cdef-0123-456789abcdef' },
       { label: 'Visit channel', url: 'https://kick.com/streamer' },
     ],
-  }, 1_000_000, { statusDisplay: 'stream' });
+    visibility: 'normal',
+  }, 1_000_000, { statusDisplay: 'track' });
 
   assert.equal(vod.name, 'Kick');
   assert.equal(vod.details, 'A past broadcast');

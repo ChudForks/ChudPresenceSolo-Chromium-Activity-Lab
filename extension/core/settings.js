@@ -1,75 +1,8 @@
 import { normalizeActivityPreferences } from './activity-settings.js';
 import { DISCORD_CLIENT_ID } from '../config.js';
 
-export const SERVICE_SETTINGS = Object.freeze({
-  youtube: Object.freeze({
-    label: 'YouTube',
-    enabled: 'sourceYouTube',
-    paused: 'youtubeShowPaused',
-    status: 'youtubeStatusDisplay',
-    statusValues: Object.freeze(['app', 'creator', 'video']),
-    artwork: 'youtubeShowArtwork',
-    timestamps: 'youtubeShowTimestamps',
-    buttons: 'youtubeShowButtons',
-  }),
-  movies67: Object.freeze({
-    label: '67Movies',
-    enabled: 'sourceMovies67',
-    paused: 'movies67ShowPaused',
-    status: 'movies67StatusDisplay',
-    statusValues: Object.freeze(['app', 'series', 'episode']),
-    artwork: 'movies67ShowArtwork',
-    timestamps: 'movies67ShowTimestamps',
-    buttons: 'movies67ShowButtons',
-  }),
-  twitch: Object.freeze({
-    label: 'Twitch',
-    enabled: 'sourceTwitch',
-    paused: 'twitchShowPaused',
-    status: 'twitchStatusDisplay',
-    statusValues: Object.freeze(['app', 'streamer', 'stream']),
-    artwork: 'twitchShowArtwork',
-    timestamps: 'twitchShowTimestamps',
-    buttons: 'twitchShowButtons',
-  }),
-  kick: Object.freeze({
-    label: 'Kick',
-    enabled: 'sourceKick',
-    paused: 'kickShowPaused',
-    status: 'kickStatusDisplay',
-    statusValues: Object.freeze(['app', 'streamer', 'stream']),
-    artwork: 'kickShowArtwork',
-    timestamps: 'kickShowTimestamps',
-    buttons: 'kickShowButtons',
-  }),
-});
-
 export const DEFAULT_SETTINGS = Object.freeze({
   enabled: true,
-  sourceYouTube: true,
-  youtubeShowPaused: true,
-  youtubeStatusDisplay: 'app',
-  youtubeShowArtwork: true,
-  youtubeShowTimestamps: true,
-  youtubeShowButtons: true,
-  sourceMovies67: true,
-  movies67ShowPaused: true,
-  movies67StatusDisplay: 'app',
-  movies67ShowArtwork: true,
-  movies67ShowTimestamps: true,
-  movies67ShowButtons: true,
-  sourceTwitch: true,
-  twitchShowPaused: true,
-  twitchStatusDisplay: 'app',
-  twitchShowArtwork: true,
-  twitchShowTimestamps: true,
-  twitchShowButtons: true,
-  sourceKick: true,
-  kickShowPaused: true,
-  kickStatusDisplay: 'app',
-  kickShowArtwork: true,
-  kickShowTimestamps: true,
-  kickShowButtons: true,
 });
 
 export const LEGACY_DETAIL_SETTINGS = Object.freeze([
@@ -86,6 +19,34 @@ export const LEGACY_APPLICATION_ID_SETTINGS = Object.freeze([
   'kickApplicationId',
 ]);
 
+/** Packaged-provider keys retired as providers became Activities. */
+export const RETIRED_PROVIDER_SETTINGS = Object.freeze([
+  'sourceMovies67',
+  'movies67ShowPaused',
+  'movies67StatusDisplay',
+  'movies67ShowArtwork',
+  'movies67ShowTimestamps',
+  'movies67ShowButtons',
+  'sourceKick',
+  'kickShowPaused',
+  'kickStatusDisplay',
+  'kickShowArtwork',
+  'kickShowTimestamps',
+  'kickShowButtons',
+  'sourceTwitch',
+  'twitchShowPaused',
+  'twitchStatusDisplay',
+  'twitchShowArtwork',
+  'twitchShowTimestamps',
+  'twitchShowButtons',
+  'sourceYouTube',
+  'youtubeShowPaused',
+  'youtubeStatusDisplay',
+  'youtubeShowArtwork',
+  'youtubeShowTimestamps',
+  'youtubeShowButtons',
+]);
+
 export function normalizeSettings(value = {}) {
   const normalized = {};
   for (const [key, fallback] of Object.entries(DEFAULT_SETTINGS)) {
@@ -96,23 +57,6 @@ export function normalizeSettings(value = {}) {
     }
   }
 
-  for (const service of Object.values(SERVICE_SETTINGS)) {
-    if (typeof value[service.paused] !== 'boolean' && typeof value.showPaused === 'boolean') {
-      normalized[service.paused] = value.showPaused;
-    }
-    if (typeof value[service.artwork] !== 'boolean' && typeof value.showArtwork === 'boolean') {
-      normalized[service.artwork] = value.showArtwork;
-    }
-    if (typeof value[service.timestamps] !== 'boolean' && typeof value.showTimestamps === 'boolean') {
-      normalized[service.timestamps] = value.showTimestamps;
-    }
-    if (typeof value[service.buttons] !== 'boolean' && typeof value.showButtons === 'boolean') {
-      normalized[service.buttons] = value.showButtons;
-    }
-    if (!service.statusValues.includes(value[service.status])) {
-      normalized[service.status] = DEFAULT_SETTINGS[service.status];
-    }
-  }
   return normalized;
 }
 
@@ -126,13 +70,7 @@ export function presenceDetailsForTrack(track, settings = DEFAULT_SETTINGS, acti
       showButtons: preferences.showButtons,
     };
   }
-  const service = SERVICE_SETTINGS[track?.source];
-  const keys = track?.settingKeys || (service ? {
-    statusDisplay: service.status,
-    showArtwork: service.artwork,
-    showTimestamps: service.timestamps,
-    showButtons: service.buttons,
-  } : null);
+  const keys = track?.settingKeys;
   if (!keys) return {};
   const current = normalizeSettings(settings);
   return {
@@ -156,11 +94,6 @@ export function isTrackAllowed(track, settings = DEFAULT_SETTINGS, activityPrefe
   }
   if (track.activityId) {
     return track.playing || normalizeActivityPreferences(activityPreferences).showPaused;
-  }
-  const service = SERVICE_SETTINGS[track.source];
-  if (service) {
-    if (!current[service.enabled]) return false;
-    return track.playing || current[service.paused];
   }
   const keys = track.settingKeys;
   if (!keys) return true;

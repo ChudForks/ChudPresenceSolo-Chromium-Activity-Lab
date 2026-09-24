@@ -24,40 +24,11 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://www.youtube.com/*",
-        "https://youtube.com/*"
-      ],
-      "js": ["injected.js"],
-      "run_at": "document_start",
-      "world": "MAIN"
-    },
-    {
-      "matches": ["https://www.youtube.com/*", "https://youtube.com/*"],
-      "js": ["youtube.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://67movies.st/*", "https://www.67movies.st/*"],
-      "js": ["movies67.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://www.twitch.tv/*", "https://twitch.tv/*"],
-      "js": ["twitch.js"],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": ["https://kick.com/*", "https://www.kick.com/*"],
-      "js": ["kick.js"],
-      "run_at": "document_idle"
-    }
-  ],
   "permissions": ["alarms", "identity", "offscreen", "storage", "userScripts"],
   "optional_host_permissions": ["https://*/*"],
   "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
     "https://discord.com/api/*",
     "https://discord.com/oauth2/*"
   ]

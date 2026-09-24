@@ -1,8 +1,15 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import vm from 'node:vm';
 import { ActivityManager } from '../extension/core/activity-manager.js';
 import { registerActivityRestoreHandlers } from '../extension/core/activity-restore.js';
+import {
+  DEFAULT_YOUTUBE_DECISION_KEY,
+  ensureBundledYouTubeInstalled,
+  loadBundledYouTubePackage,
+  rememberBundledYouTubeRemoval,
+} from '../extension/core/default-activity.js';
 import { shouldInvalidateActivityTab } from '../extension/core/tab-lifecycle.js';
 
 function createFakeEvent() {
@@ -200,6 +207,63 @@ function activityRequest(manager, operation, payload = {}, requestId = 'test-req
   };
 }
 
+test('bundled YouTube installs when user scripts become available and stays removed', async () => {
+  const fake = createFakeApi();
+  fake.permissions.add('https://www.youtube.com/*');
+  fake.permissions.add('https://youtube.com/*');
+  fake.permissions.delete('userScripts');
+  const manager = new ActivityManager({ api: fake.api });
+  const runtime = { getURL: (path) => `test-extension://${path}` };
+  const bundled = await loadBundledYouTubePackage(runtime, async (url) => {
+    const filename = url.slice('test-extension://'.length);
+    return new Response(await readFile(new URL(`../extension/${filename}`, import.meta.url)));
+  });
+  assert.equal(bundled.metadata.id, 'youtube');
+  assert.match(bundled.icon, /^data:image\/png;base64,/);
+
+  const options = {
+    manager, storage: fake.api.storage.local, api: fake.api, loadPackage: async () => bundled,
+  };
+  assert.equal(await ensureBundledYouTubeInstalled(options), 'pending');
+  assert.equal(await manager.get('youtube'), null);
+  fake.permissions.add('userScripts');
+  assert.equal(await ensureBundledYouTubeInstalled(options), 'installed');
+  assert.equal((await manager.get('youtube')).source.type, 'bundled');
+  assert.equal(fake.scripts.has('chudpresence-activity-youtube'), true);
+  assert.equal(fake.data[DEFAULT_YOUTUBE_DECISION_KEY], 'installed');
+  assert.equal(await ensureBundledYouTubeInstalled(options), 'installed');
+  assert.equal(fake.userScriptCalls.filter((call) => call.type === 'register').length, 1);
+
+  assert.equal(await manager.remove('youtube'), true);
+  await rememberBundledYouTubeRemoval(fake.api.storage.local);
+  const restarted = new ActivityManager({ api: fake.api });
+  assert.equal(await ensureBundledYouTubeInstalled({ ...options, manager: restarted }), 'removed');
+  assert.equal(await restarted.get('youtube'), null);
+  assert.equal(fake.scripts.has('chudpresence-activity-youtube'), false);
+});
+
+test('a newer bundled YouTube Activity updates an installed copy without enabling a disabled one', async () => {
+  const fake = createFakeApi();
+  fake.permissions.add('https://www.youtube.com/*');
+  fake.permissions.add('https://youtube.com/*');
+  const manager = new ActivityManager({ api: fake.api });
+  const runtime = { getURL: (path) => `test-extension://${path}` };
+  const bundled = await loadBundledYouTubePackage(runtime, async (url) => {
+    const filename = url.slice('test-extension://'.length);
+    return new Response(await readFile(new URL(`../extension/${filename}`, import.meta.url)));
+  });
+  assert.equal(bundled.metadata.version, '1.0.1');
+  await manager.install({ ...bundled, metadata: { ...bundled.metadata, version: '1.0.0' } });
+  await manager.setEnabled('youtube', false);
+  fake.data[DEFAULT_YOUTUBE_DECISION_KEY] = 'installed';
+
+  assert.equal(await ensureBundledYouTubeInstalled({ manager, storage: fake.api.storage.local,
+    api: fake.api, loadPackage: async () => bundled }), 'installed');
+  assert.equal((await manager.get('youtube')).metadata.version, '1.0.1');
+  assert.equal((await manager.get('youtube')).enabled, false);
+  assert.equal(fake.scripts.has('chudpresence-activity-youtube'), false);
+});
+
 test('installs into an isolated per-Activity world and restores after registrations are cleared', async () => {
   const fake = createFakeApi();
   const manager = new ActivityManager({ api: fake.api });
@@ -211,7 +275,7 @@ test('installs into an isolated per-Activity world and restores after registrati
   assert.equal(fake.scripts.get('chudpresence-activity-sample-activity').world, 'USER_SCRIPT');
   assert.equal(fake.scripts.get('chudpresence-activity-sample-activity').worldId, 'chudpresence.activity.sample-activity');
   assert.equal(fake.scripts.get('chudpresence-activity-sample-activity').allFrames, false);
-  assert.equal(fake.scripts.get('chudpresence-activity-sample-activity').runAt, 'document_idle');
+  assert.equal(fake.scripts.get('chudpresence-activity-sample-activity').runAt, 'document_end');
   assert.deepEqual(fake.scripts.get('chudpresence-activity-sample-activity').matches, ['https://example.com/*']);
   assert.deepEqual(fake.scripts.get('chudpresence-activity-sample-activity').excludeMatches, ['https://example.com/private/*']);
   assert.deepEqual(fake.userScriptCalls.find((call) => call.type === 'configureWorld').options, {

@@ -16,12 +16,9 @@ test('normalizes missing and invalid settings to defaults', () => {
   });
 });
 
-test('filters disabled sources', () => {
-  assert.equal(isTrackAllowed({
-    source: 'youtube', playing: true, settingKeys: { enabled: 'sourceYouTube' },
-  }, {
-    ...DEFAULT_SETTINGS,
-    sourceYouTube: false,
+test('global sharing switch controls installed Activities', () => {
+  assert.equal(isTrackAllowed({ activityId: 'youtube', playback: { state: 'playing' }, media: { title: 'Video' } }, {
+    enabled: false,
   }), false);
   assert.equal(isTrackAllowed({ source: 'crunchyroll', activityId: 'crunchyroll', playing: true }, DEFAULT_SETTINGS), true);
 });
@@ -32,59 +29,27 @@ test('filters paused tracks only when configured', () => {
   assert.equal(isTrackAllowed(paused, DEFAULT_SETTINGS, { showPaused: false }), false);
 });
 
-test('migrates legacy global presence preferences to every service', () => {
-  const normalized = normalizeSettings({
-    showPaused: false,
-    showArtwork: false,
-    showTimestamps: true,
-    showButtons: false,
-  });
-
-  for (const prefix of ['youtube', 'movies67', 'twitch', 'kick']) {
-    assert.equal(normalized[`${prefix}ShowPaused`], false);
-    assert.equal(normalized[`${prefix}ShowArtwork`], false);
-    assert.equal(normalized[`${prefix}ShowTimestamps`], true);
-    assert.equal(normalized[`${prefix}ShowButtons`], false);
+test('YouTube, Kick, and Twitch use installed Activity preferences instead of packaged settings', () => {
+  for (const id of ['youtube', 'kick', 'twitch']) {
+    const sourceKey = `source${id[0].toUpperCase()}${id.slice(1)}`;
+    assert.equal(Object.hasOwn(normalizeSettings({ [sourceKey]: false }), sourceKey), false);
+    const track = { activityId: id, source: 'activity', playing: false };
+    assert.equal(isTrackAllowed(track, DEFAULT_SETTINGS, { showPaused: false }), false);
+    assert.equal(isTrackAllowed(track, DEFAULT_SETTINGS, { showPaused: true }), true);
   }
 });
 
-test('uses generic track settings and one fixed Discord application identity', () => {
-  const settings = {
-    ...DEFAULT_SETTINGS,
-    youtubeShowArtwork: false,
-  };
-  const track = { settingKeys: {
-    statusDisplay: 'youtubeStatusDisplay', showArtwork: 'youtubeShowArtwork',
-    showTimestamps: 'youtubeShowTimestamps', showButtons: 'youtubeShowButtons',
-  } };
-
-  assert.equal(applicationIdForPresence(), DISCORD_CLIENT_ID);
-  assert.deepEqual(presenceDetailsForTrack(track, settings), {
-    statusDisplay: 'app',
-    showArtwork: false,
-    showTimestamps: true,
-    showButtons: true,
+test('ignores retired provider settings', () => {
+  const normalized = normalizeSettings({
+    showPaused: false,
+    sourceYouTube: false,
+    youtubeStatusDisplay: 'video',
   });
+  assert.deepEqual(normalized, DEFAULT_SETTINGS);
 });
 
-test('normalizes and selects each service status display preference', () => {
-  const settings = normalizeSettings({
-    youtubeStatusDisplay: 'creator',
-    movies67StatusDisplay: 'invalid',
-    twitchStatusDisplay: 'streamer',
-    kickStatusDisplay: 'stream',
-  });
-  const keys = {
-    youtube: { statusDisplay: 'youtubeStatusDisplay' },
-    movies67: { statusDisplay: 'movies67StatusDisplay' },
-    twitch: { statusDisplay: 'twitchStatusDisplay' },
-    kick: { statusDisplay: 'kickStatusDisplay' },
-  };
-
-  assert.equal(presenceDetailsForTrack({ settingKeys: keys.youtube }, settings).statusDisplay, 'creator');
-  assert.equal(presenceDetailsForTrack({ settingKeys: keys.movies67 }, settings).statusDisplay, 'app');
-  assert.equal(presenceDetailsForTrack({ settingKeys: keys.twitch }, settings).statusDisplay, 'streamer');
-  assert.equal(presenceDetailsForTrack({ settingKeys: keys.kick }, settings).statusDisplay, 'stream');
+test('uses one fixed Discord application identity', () => {
+  assert.equal(applicationIdForPresence(), DISCORD_CLIENT_ID);
 });
 
 test('applies installed Activity preferences to paused filtering and presence details', () => {

@@ -660,7 +660,9 @@ function scriptDefinition(record, extensionVersion = '0.0.0') {
     matches: [...record.metadata.matches],
     ...(record.metadata.excludeMatches?.length ? { excludeMatches: [...record.metadata.excludeMatches] } : {}),
     allFrames: record.metadata.frames === 'all',
-    runAt: 'document_idle',
+    // document_idle waits until the page is idle, which a player iframe can
+    // delay for half a minute. document_end starts as soon as the DOM exists.
+    runAt: 'document_end',
     js: [{ code }],
   };
 }
@@ -1060,8 +1062,9 @@ export class ActivityManager {
     if (Boolean(metadata.icon) !== Boolean(icon)) {
       throw new Error('Activity icon metadata and package icon must be supplied together.');
     }
-    const sourceType = activityPackage?.sourceType === 'repository' ? 'repository' : 'local';
-    let source = { type: 'local' };
+    const sourceType = activityPackage?.sourceType === 'repository' ? 'repository'
+      : activityPackage?.sourceType === 'bundled' ? 'bundled' : 'local';
+    let source = { type: sourceType };
     if (sourceType === 'repository') {
       const provenance = activityPackage?.provenance;
       if (!provenance || provenance.repository !== 'ChudForks/ChudPresence-Activities' ||

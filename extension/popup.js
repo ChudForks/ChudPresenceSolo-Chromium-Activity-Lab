@@ -1,38 +1,5 @@
-import { DEFAULT_SETTINGS, normalizeSettings, SERVICE_SETTINGS } from './core/settings.js';
+import { DEFAULT_SETTINGS, normalizeSettings } from './core/settings.js';
 import { DEFAULT_ACTIVITY_PREFERENCES } from './core/activity-settings.js';
-
-const serviceUi = Object.freeze({
-  youtube: {
-    icon: 'assets/services/youtube.svg',
-    description: 'Videos, Shorts, and live streams',
-    statuses: [['app', 'YouTube'], ['creator', 'Creator / channel'], ['video', 'Video title']],
-  },
-  youtubeMusic: {
-    icon: 'assets/services/youtube-music.svg',
-    description: 'Songs, artists, and albums',
-    statuses: [['app', 'YouTube Music'], ['artist', 'Artist'], ['track', 'Track title']],
-  },
-  crunchyroll: {
-    icon: 'assets/services/crunchyroll.svg',
-    description: 'Anime, series, and movies',
-    statuses: [['app', 'Crunchyroll'], ['series', 'Series'], ['episode', 'Episode']],
-  },
-  movies67: {
-    icon: 'assets/services/movies67.svg',
-    description: 'Movies and television',
-    statuses: [['app', '67Movies'], ['series', 'Series'], ['episode', 'Episode']],
-  },
-  twitch: {
-    icon: 'assets/services/twitch.svg',
-    description: 'Live streams and videos on demand',
-    statuses: [['app', 'Twitch'], ['streamer', 'Streamer'], ['stream', 'Stream title']],
-  },
-  kick: {
-    icon: 'assets/services/kick.svg',
-    description: 'Live streams and videos on demand',
-    statuses: [['app', 'Kick'], ['streamer', 'Streamer'], ['stream', 'Stream title']],
-  },
-});
 
 const activityView = document.getElementById('activity-view');
 const settingsView = document.getElementById('settings-view');
@@ -76,63 +43,11 @@ function installedActivity(id) {
 
 function sourceIcon(track) {
   const activity = installedActivity(track?.activityId);
-  if (activity || track?.activityName) return activity?.icon || 'icons/icon32.png';
-  const source = track?.activityId === 'youtube-music' ? 'youtubeMusic' : track?.activityId || track?.source;
-  return serviceUi[source]?.icon || 'icons/icon32.png';
+  return activity?.icon || 'icons/icon32.png';
 }
 
 function sourceName(track) {
-  if (track?.activityName) return track.activityName;
-  if (track?.source === 'movies67') return '67Movies';
-  if (track?.source === 'crunchyroll') return 'Crunchyroll';
-  if (track?.source === 'youtube') {
-    if (track.kind === 'short') return 'YouTube Shorts';
-    if (track.live || track.kind === 'live') return 'YouTube Live';
-    return 'YouTube';
-  }
-  if (track?.source === 'youtubeMusic') return 'YouTube Music';
-  if (track?.source === 'twitch') return track.live || track.kind === 'live' ? 'Twitch Live' : 'Twitch';
-  if (track?.source === 'kick') return track.live || track.kind === 'live' ? 'Kick Live' : 'Kick';
-  return 'Playback';
-}
-
-function buildServiceSettings() {
-  const container = document.getElementById('service-settings');
-  const template = document.getElementById('service-settings-template');
-
-  for (const [source, service] of Object.entries(SERVICE_SETTINGS)) {
-    const ui = serviceUi[source];
-    const card = template.content.firstElementChild.cloneNode(true);
-    card.dataset.service = source;
-    card.querySelector('.service-summary-icon img').src = ui.icon;
-    card.querySelector('.setting-copy strong').textContent = service.label;
-    card.querySelector('.setting-copy small').textContent = ui.description;
-
-    const master = card.querySelector('.service-master input');
-    master.name = service.enabled;
-    master.setAttribute('aria-label', `Share ${service.label} activity`);
-    master.addEventListener('click', (event) => event.stopPropagation());
-
-    for (const [settingType, settingName] of Object.entries({
-      paused: service.paused,
-      status: service.status,
-      artwork: service.artwork,
-      timestamps: service.timestamps,
-      buttons: service.buttons,
-    })) {
-      const input = card.querySelector(`[data-setting="${settingType}"]`);
-      input.name = settingName;
-      if (input.tagName === 'SELECT') {
-        for (const [value, label] of ui.statuses) {
-          const option = document.createElement('option');
-          option.value = value;
-          option.textContent = label;
-          input.append(option);
-        }
-      }
-    }
-    container.append(card);
-  }
+  return track?.activityName || 'Playback';
 }
 
 function renderInstalledActivityTiles() {
@@ -272,15 +187,6 @@ function showView(view) {
   (showSettings ? settingsView : activityView).scrollTop = 0;
 }
 
-function updateServiceStates(settings) {
-  for (const [source, service] of Object.entries(SERVICE_SETTINGS)) {
-    const enabled = settings[service.enabled] !== false;
-    document.querySelector(`.service-tile[data-service="${source}"]`)?.classList.toggle('enabled', enabled);
-    document.querySelector(`.service-tile[data-service="${source}"]`)?.classList.toggle('disabled', !enabled);
-    document.querySelector(`.service-settings-card[data-service="${source}"]`)?.classList.toggle('is-disabled', !enabled);
-  }
-}
-
 function renderForm(settings) {
   const normalized = normalizeSettings(settings);
   for (const [key, value] of Object.entries(normalized)) {
@@ -289,7 +195,6 @@ function renderForm(settings) {
     if (input.type === 'checkbox') input.checked = value;
     else input.value = value;
   }
-  updateServiceStates(normalized);
   formHasLoaded = true;
 }
 
@@ -362,7 +267,6 @@ function renderDashboard(state) {
   hintEl.textContent = state.delivery?.message || (state.delivery?.authenticated ? 'Ready to share activity.' : 'Share what you are watching or listening to.');
   renderDiscord(state.delivery);
   renderLocalDiagnostics(state);
-  updateServiceStates(settings);
   if (!formHasLoaded) renderForm(settings);
 }
 
@@ -490,7 +394,6 @@ async function saveSettings() {
   clearTimeout(saveTimer);
   const settings = readForm();
   await chrome.storage.local.set(settings);
-  updateServiceStates(settings);
   document.body.dataset.enabled = String(settings.enabled);
   setSaveFeedback('saved', 'Saved');
 }
@@ -515,8 +418,6 @@ async function updateDiscord(event) {
     otherButton.disabled = false;
   }
 }
-
-buildServiceSettings();
 
 activityTab.addEventListener('click', () => showView('activity'));
 document.getElementById('show-activity').addEventListener('click', () => showView('activity'));
