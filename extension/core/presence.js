@@ -62,6 +62,13 @@ function legacyButtons(track) {
     ].filter(Boolean);
   }
 
+  if (track.source === 'movies67') {
+    return [
+      { label: track.kind === 'movie' ? 'Watch movie' : 'Watch on 67Movies', url },
+      { label: 'Open 67Movies', url: `${new URL(url).origin}/` },
+    ];
+  }
+
   const label = track.source === 'twitch'
     ? 'Watch on Twitch'
     : track.source === 'kick'
